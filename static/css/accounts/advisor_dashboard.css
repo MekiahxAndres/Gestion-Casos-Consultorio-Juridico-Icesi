@@ -1,0 +1,226 @@
+.page-heading-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 28px;
+}
+
+.page-heading-row .page-subtitle {
+    margin-bottom: 0;
+}
+
+.notifications-entry-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 22px;
+    border-radius: 8px;
+    background: #5454e8;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 16px;
+    box-shadow: 0 8px 20px rgba(84, 84, 232, 0.24);
+    transition: background 0.2s ease, transform 0.2s ease;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.notifications-entry-button:hover {
+    background: #4141c9;
+    transform: translateY(-1px);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap: 18px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: #ffffff;
+    border: 1px solid #d9dee8;
+    border-radius: 8px;
+    padding: 22px;
+    box-shadow: 0 8px 22px rgba(17, 26, 51, 0.06);
+    min-height: 120px;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    text-decoration: none;
+}
+
+.stat-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.stat-copy span {
+    color: #475467;
+    font-size: 1rem;
+}
+
+.stat-copy strong {
+    font-size: 2.65rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #111a33;
+}
+
+.stat-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+.stat-icon.blue { background: #5454e8; }
+.stat-icon.purple { background: #111a33; }
+.stat-icon.green { background: #1f8f4d; }
+.stat-icon.red { background: #b45f3c; }
+
+/* Líneas laterales de color */
+.stat-blue,
+.stat-purple,
+.stat-green,
+.stat-red {
+    position: relative;
+    overflow: hidden;
+    border-left: 4px solid transparent !important;
+}
+
+.stat-blue   { border-left-color: #5454e8 !important; }
+.stat-purple { border-left-color: #7c6fd9 !important; }
+.stat-green  { border-left-color: #1f8f4d !important; }
+.stat-red    { border-left-color: #dc2626 !important; }
+
+.shortcut-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 18px;
+    margin: 24px 0 28px;
+}
+
+.shortcut-card {
+    min-height: 92px;
+    background: #ffffff;
+    border: 1px solid #d9dee8;
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(17, 26, 51, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #111a33;
+    text-decoration: none;
+}
+
+.primary-card {
+    background: #5454e8;
+    border-color: #5454e8;
+    color: #ffffff;
+}
+
+.alerts-panel {
+    overflow: hidden;
+}
+
+.alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.advisor-alert {
+    background: #fff7f3;
+    border: 1px solid #e9c9ba;
+    border-left: 4px solid #b45f3c;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: center;
+}
+
+.alert-copy {
+    flex: 1;
+}
+
+.alert-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.alert-top strong {
+    font-size: 1.3rem;
+    color: #111a33;
+}
+
+.advisor-alert p {
+    margin: 0;
+    color: #344054;
+    font-size: 1.02rem;
+    line-height: 1.65;
+}
+
+.empty-text {
+    color: #667085;
+    margin: 0;
+    padding: 10px 0;
+}
+
+@media (max-width: 1100px) {
+    .page-heading-row {
+        flex-direction: column;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .advisor-alert {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .shortcut-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .notifications-entry-button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .shortcut-grid {
+        grid-template-columns: 1fr;
+    }
+}

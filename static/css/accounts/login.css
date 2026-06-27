@@ -1,0 +1,273 @@
+.login-page {
+    height: 100vh;
+    height: 100dvh;
+    background: #fbfbfd;
+    display: grid;
+    grid-template-columns: minmax(420px, 0.78fr) minmax(520px, 1fr);
+    color: #0b1020;
+    overflow: hidden;
+}
+
+.login-visual {
+    height: 100vh;
+    height: 100dvh;
+    background-color: #111a33;
+    background-image:
+        linear-gradient(180deg, rgba(5, 10, 23, 0.16), rgba(5, 10, 23, 0.02)),
+        url("../../images/torre.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: 44% center;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-panel {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 82px 72px 34px;
+    background: #fbfbfd;
+    position: relative;
+    overflow: hidden;
+}
+
+.panel-logo {
+    position: absolute;
+    top: 42px;
+    right: 72px;
+    width: 320px;
+    max-width: 34vw;
+    height: auto;
+}
+
+.login-card {
+    width: min(100%, 620px);
+    background: transparent;
+    margin-top: 24px;
+}
+
+.login-heading {
+    margin-bottom: 28px;
+}
+
+.section-label {
+    display: block;
+    color: #5454e8;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+}
+
+.login-heading h2 {
+    margin: 0;
+    font-size: 3.1rem;
+    line-height: 1;
+    font-weight: 900;
+    color: #0b1020;
+}
+
+.login-heading p {
+    margin: 18px 0 0;
+    max-width: 520px;
+    color: #3f4859;
+    font-size: 1.05rem;
+    line-height: 1.6;
+}
+
+.inline-messages {
+    margin-bottom: 22px;
+}
+
+.inline-message {
+    border-left: 4px solid #d13438;
+    background: #fff2f2;
+    color: #8a1f24;
+    padding: 14px 16px;
+    font-size: 0.96rem;
+    text-align: left;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.form-group label {
+    font-weight: 700;
+    color: #111827;
+    font-size: 1.02rem;
+}
+
+.form-group input {
+    width: 100%;
+    min-height: 56px;
+    border: 1px solid #c9ced8;
+    border-radius: 2px;
+    background: #ffffff;
+    padding: 15px 16px;
+    color: #0b1020;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input::placeholder {
+    color: #667085;
+    opacity: 1;
+}
+
+.form-group input:focus {
+    border-color: #5454e8;
+    box-shadow: 0 0 0 3px rgba(84, 84, 232, 0.16);
+}
+
+.login-button {
+    width: 100%;
+    border: none;
+    background: #5454e8;
+    color: #ffffff;
+    border-radius: 2px;
+    padding: 18px 20px;
+    min-height: 60px;
+    font-weight: 800;
+    font-size: 1.05rem;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.login-button:hover {
+    background: #4141c9;
+    transform: translateY(-1px);
+}
+
+.forgot-link {
+    display: block;
+    text-align: center;
+    margin-top: 22px;
+    color: #5454e8;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.privacy-text {
+    margin-top: 40px;
+    color: #9ca3af;
+    font-size: 0.96rem;
+    line-height: 1.55;
+    text-align: center;
+}
+
+@media (max-width: 980px) {
+    .login-page {
+        grid-template-columns: 1fr;
+        min-height: 100vh;
+        min-height: 100dvh;
+        height: auto;
+        overflow-y: auto;
+    }
+
+    .login-visual {
+        height: 280px;
+        min-height: 280px;
+        background-position: center 28%;
+    }
+
+    .login-panel {
+        height: auto;
+        min-height: calc(100vh - 280px);
+        min-height: calc(100dvh - 280px);
+        padding: 108px 24px 46px;
+        overflow: visible;
+    }
+
+    .panel-logo {
+        top: 32px;
+        right: 24px;
+        width: 260px;
+        max-width: 68vw;
+    }
+}
+
+@media (max-width: 620px) {
+    .login-visual {
+        height: 230px;
+        min-height: 230px;
+    }
+
+    .login-panel {
+        padding: 104px 18px 44px;
+    }
+
+    .panel-logo {
+        left: 18px;
+        right: auto;
+        width: 220px;
+        max-width: calc(100vw - 36px);
+    }
+
+    .login-heading h2 {
+        font-size: 2.5rem;
+    }
+
+    .privacy-text {
+        margin-top: 34px;
+    }
+}
+
+@media (max-height: 780px) and (min-width: 981px) {
+    .panel-logo {
+        top: 28px;
+        width: 280px;
+    }
+
+    .login-panel {
+        padding-top: 70px;
+        padding-bottom: 26px;
+    }
+
+    .login-card {
+        margin-top: 18px;
+    }
+
+    .login-heading {
+        margin-bottom: 22px;
+    }
+
+    .login-heading h2 {
+        font-size: 2.7rem;
+    }
+
+    .login-heading p {
+        margin-top: 12px;
+    }
+
+    .login-form {
+        gap: 16px;
+    }
+
+    .form-group input {
+        min-height: 52px;
+    }
+
+    .login-button {
+        min-height: 56px;
+    }
+
+    .privacy-text {
+        margin-top: 28px;
+    }
+}

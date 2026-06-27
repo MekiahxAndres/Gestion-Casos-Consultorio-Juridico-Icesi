@@ -1,0 +1,991 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bitácora del Caso{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cases/case_bitacora.css' %}?v=11">
+<link rel="stylesheet" href="{% static 'css/cases/case_calendar.css' %}?v=2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <a href="{% url 'dashboard_redirect' %}" class="logo-link" style="display: inline-block; cursor: pointer;">
+                <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+            </a>
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ user_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ user_data.full_name }}</strong>
+                    <span>{{ user_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow"><i class="fa-solid fa-chevron-down"></i></div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content bitacora-page">
+        <div class="bitacora-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+            <div>
+                <h1 class="page-title">Bitácora del Caso</h1>
+                <p class="page-subtitle">
+                    Caso {{ case.case_number }} - {{ case.beneficiary.full_name }}
+                </p>
+            </div>
+            <button class="cal-open-btn" type="button" onclick="openCalendarModal()">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Calendario</span>
+            </button>
+        </div>
+
+        <section class="case-summary-banner" aria-label="Resumen asistido del caso">
+            <div class="summary-banner-copy">
+                <div class="summary-banner-icon">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                    <h2>Resumen asistido del caso</h2>
+                    <p>Genera una síntesis de entradas, documentos legibles y próximos términos del caso.</p>
+                </div>
+            </div>
+            <button class="summary-banner-button" type="button" onclick="openSummaryModal()">
+                <i class="fa-solid fa-sparkles"></i>
+                <span>Ver resumen</span>
+            </button>
+        </section>
+
+        <div id="summaryModal" class="summary-modal-overlay" aria-hidden="true" hidden>
+            <div class="summary-modal" role="dialog" aria-modal="true" aria-labelledby="summaryModalTitle">
+                <div class="summary-modal-header">
+                    <div>
+                        <p class="summary-eyebrow">Bitácora y soportes</p>
+                        <h2 id="summaryModalTitle">Resumen asistido del caso</h2>
+                    </div>
+                    <button class="summary-modal-close" type="button" onclick="closeSummaryModal()" aria-label="Cerrar resumen">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <span>{{ case_summary.entry_count }}</span>
+                        <small>Entradas</small>
+                    </div>
+                    <div class="summary-stat">
+                        <span>{{ case_summary.document_count }}</span>
+                        <small>Adjuntos</small>
+                    </div>
+                    <div class="summary-stat">
+                        <span>{{ case_summary.readable_document_count }}</span>
+                        <small>Legibles</small>
+                    </div>
+                </div>
+
+                <div class="summary-detail-grid">
+                    <div class="summary-detail">
+                        <h3>Puntos clave</h3>
+                        <ul>
+                            {% for item in case_summary.highlights %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="summary-detail">
+                        <h3>Últimos movimientos</h3>
+                        {% if case_summary.latest_entries %}
+                            <ul>
+                                {% for item in case_summary.latest_entries %}
+                                    <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>No hay entradas para resumir todavía.</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="summary-detail summary-detail-wide">
+                        <h3>Documentos leídos</h3>
+                        {% if case_summary.document_insights %}
+                            <ul>
+                                {% for item in case_summary.document_insights %}
+                                    <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>Cuando se adjunten PDF, Word, Excel o PowerPoint con texto, aparecerán aquí sus puntos principales.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ════════════════════════════════════════════════════════════
+             CALENDAR MODAL
+             ════════════════════════════════════════════════════════════ -->
+        <div id="calendarModal" class="cal-modal-overlay">
+            <div class="cal-modal-container">
+
+                <!-- Header -->
+                <div class="cal-modal-header">
+                    <div class="cal-modal-header-left">
+                        <div class="cal-modal-icon">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                        <div>
+                            <h2 class="cal-modal-title">Calendario del Caso</h2>
+                            <p class="cal-modal-subtitle">
+                                {{ case.case_number }} — {{ case.beneficiary.full_name }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="cal-modal-header-right">
+                        <span class="cal-role-badge rol-{{ request.user.role }}">
+                            {{ request.user.get_role_display }}
+                        </span>
+                        <button class="cal-close-btn" type="button" onclick="closeCalendarModal()">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="cal-modal-body">
+
+                    <!-- Sidebar -->
+                    <aside class="cal-sidebar">
+                        <div class="cal-legend">
+                            <p class="cal-legend-title">Leyenda</p>
+                            <div class="cal-legend-list">
+                                <div class="cal-legend-item">
+                                    <span class="cal-dot" style="background:#5454e8;"></span>Reunión
+                                </div>
+                                <div class="cal-legend-item">
+                                    <span class="cal-dot" style="background:#f59e0b;"></span>Entrega
+                                </div>
+                                <div class="cal-legend-item">
+                                    <span class="cal-dot" style="background:#0ea5e9;"></span>Cita
+                                </div>
+                                <div class="cal-legend-item">
+                                    <span class="cal-dot" style="background:#ef4444;"></span>Presentación Juzgado
+                                </div>
+                                <div class="cal-legend-item">
+                                    <span class="cal-dot" style="background:#8b5cf6;"></span>Evento bitácora
+                                </div>
+                                <div class="cal-legend-item">
+                                    <span class="cal-dot" style="background:#f97316;"></span>Fecha límite
+                                </div>
+                                <div class="cal-legend-item">
+                                    <span class="cal-dot" style="background:#16a34a;"></span>Disponibilidad asesor
+                                </div>
+                                <div class="cal-legend-item">
+                                    <span class="cal-dot cal-dot-busy" style="background:#64748b;"></span>Ocupado en otro caso
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="cal-sidebar-divider">
+
+                        <div class="cal-sidebar-actions">
+                            {% if request.user.role == 'SEC' or request.user.role == 'ASE' %}
+                            <button class="cal-action-btn cal-action-primary" type="button" onclick="openEventForm()">
+                                <i class="fa-solid fa-plus"></i> Agregar evento
+                            </button>
+                            {% endif %}
+                            {% if request.user.role == 'ASE' %}
+                            <button class="cal-action-btn cal-action-secondary" type="button" onclick="openAvailForm()">
+                                <i class="fa-solid fa-clock"></i> Mi disponibilidad
+                            </button>
+                            {% endif %}
+                        </div>
+                    </aside>
+
+                    <!-- Calendar -->
+                    <div class="cal-main">
+                        <div id="fullCalendar"></div>
+                    </div>
+                </div>
+
+                <!-- Inner dialog (event detail / forms) -->
+                <div id="calDialogOverlay" class="cal-dialog-overlay">
+                    <div class="cal-dialog">
+                        <div class="cal-dialog-header">
+                            <h3 id="calDialogTitle" class="cal-dialog-title"></h3>
+                            <button class="cal-dialog-close" type="button" onclick="closeCalDialog()">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div id="calDialogBody" class="cal-dialog-body"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <!-- END CALENDAR MODAL -->
+
+        <div class="bitacora-layout">
+            <section class="card bitacora-form-card">
+                <div class="card-section">
+                    <h2 class="card-title">Registrar evento del caso</h2>
+                    <p class="form-intro">
+                        Cada entrada queda registrada con la fecha y hora de creación. Si es un evento futuro,
+                        programa su fecha y activa correo solo cuando sea necesario.
+                    </p>
+
+                    <form method="post" enctype="multipart/form-data" class="bitacora-form">
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.event_type.id_for_label }}">
+                                {{ form.event_type.label }}
+                            </label>
+                            {{ form.event_type }}
+                            {% if form.event_type.errors %}
+                                <div class="field-error">{{ form.event_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.content.id_for_label }}">
+                                {{ form.content.label }}
+                            </label>
+                            <div class="description-editor">
+                                {{ form.content }}
+                            </div>
+                            <label class="upload-zone" for="id_files" id="uploadZone">
+                                <div class="upload-zone-icon">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                </div>
+                                <div class="upload-zone-text">
+                                    <strong>Arrastra archivos aquí o haz clic para seleccionar</strong>
+                                    <small>PDF, Word, Excel, PowerPoint, PNG, JPG o ZIP &mdash; Máx. 7 GB en total</small>
+                                </div>
+                            </label>
+                            {{ form.files }}
+                            <div id="selected-files" class="selected-files selected-files-compact">
+                                <i class="fa-regular fa-folder-open"></i>
+                                <span>Ningún archivo seleccionado</span>
+                            </div>
+                            {% if form.content.errors %}
+                                <div class="field-error">{{ form.content.errors.0 }}</div>
+                            {% endif %}
+                            {% if form.files.errors %}
+                                <div class="field-error">{{ form.files.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.scheduled_for.id_for_label }}">
+                                {{ form.scheduled_for.label }}
+                            </label>
+                            {{ form.scheduled_for }}
+                            <span class="field-help">Úsala para eventos futuros como reuniones, audiencias o citas de tribunal.</span>
+                            {% if form.scheduled_for.errors %}
+                                <div class="field-error">{{ form.scheduled_for.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="option-panel">
+                            <label class="checkbox-wrap">
+                                {{ form.starts_new_term }}
+                                <span>{{ form.starts_new_term.label }}</span>
+                            </label>
+                            <p>Marca esta opción cuando desde esta entrada empiece a correr un nuevo plazo del caso.</p>
+
+                            <div class="term-fields" id="termFields">
+                                <label class="form-label" for="{{ form.term_due_at.id_for_label }}">
+                                    {{ form.term_due_at.label }}
+                                </label>
+                                {{ form.term_due_at }}
+                                {% if form.term_due_at.errors %}
+                                    <div class="field-error">{{ form.term_due_at.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="option-panel option-panel-muted">
+                            <label class="checkbox-wrap">
+                                {{ form.notify }}
+                                <span>{{ form.notify.label }}</span>
+                            </label>
+                            <p>La aplicación notificará internamente a los participantes del caso. Esta opción agrega aviso por correo electrónico.</p>
+                            {% if form.notify.errors %}
+                                <div class="field-error">{{ form.notify.errors.0 }}</div>
+                            {% endif %}
+
+                            <div id="emailRecipientsPanel" class="recipients-panel">
+                                <p class="recipients-panel-label">Selecciona a quiénes enviar el correo:</p>
+                                <div class="recipients-list">
+                                    {% if case.assigned_student %}
+                                    <label class="recipient-item {% if not case.assigned_student.email %}recipient-no-email{% endif %}">
+                                        <span class="recipient-role-icon"><i class="fa-solid fa-user-graduate"></i></span>
+                                        <span class="recipient-info">
+                                            <strong>Estudiante</strong>
+                                            <em>{% if case.assigned_student.email %}{{ case.assigned_student.email }}{% else %}Sin correo registrado{% endif %}</em>
+                                        </span>
+                                        <input type="checkbox" name="email_recipients" value="{{ case.assigned_student.email }}" {% if case.assigned_student.email %}checked{% else %}disabled{% endif %}>
+                                    </label>
+                                    {% endif %}
+                                    {% if case.advisor %}
+                                    <label class="recipient-item {% if not case.advisor.email %}recipient-no-email{% endif %}">
+                                        <span class="recipient-role-icon"><i class="fa-solid fa-chalkboard-user"></i></span>
+                                        <span class="recipient-info">
+                                            <strong>Asesor</strong>
+                                            <em>{% if case.advisor.email %}{{ case.advisor.email }}{% else %}Sin correo registrado{% endif %}</em>
+                                        </span>
+                                        <input type="checkbox" name="email_recipients" value="{{ case.advisor.email }}" {% if case.advisor.email %}checked{% else %}disabled{% endif %}>
+                                    </label>
+                                    {% endif %}
+                                    {% if case.secretary %}
+                                    <label class="recipient-item {% if not case.secretary.email %}recipient-no-email{% endif %}">
+                                        <span class="recipient-role-icon"><i class="fa-solid fa-user-tie"></i></span>
+                                        <span class="recipient-info">
+                                            <strong>Secretaria</strong>
+                                            <em>{% if case.secretary.email %}{{ case.secretary.email }}{% else %}Sin correo registrado{% endif %}</em>
+                                        </span>
+                                        <input type="checkbox" name="email_recipients" value="{{ case.secretary.email }}" {% if case.secretary.email %}checked{% else %}disabled{% endif %}>
+                                    </label>
+                                    {% endif %}
+                                    {% if case.beneficiary %}
+                                    <label class="recipient-item {% if not case.beneficiary.email %}recipient-no-email{% endif %}">
+                                        <span class="recipient-role-icon"><i class="fa-solid fa-person"></i></span>
+                                        <span class="recipient-info">
+                                            <strong>Beneficiario</strong>
+                                            <em>{% if case.beneficiary.email %}{{ case.beneficiary.email }}{% else %}Sin correo registrado{% endif %}</em>
+                                        </span>
+                                        <input type="checkbox" name="email_recipients" value="{{ case.beneficiary.email }}" {% if not case.beneficiary.email %}disabled{% endif %}>
+                                    </label>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="primary-button submit-button">
+                                <i class="fa-solid fa-arrow-right"></i>
+                                <span>Registrar evento</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section class="card entries-card">
+                <div class="card-section">
+                    <h2 class="card-title">Historial de Entradas</h2>
+
+                    {% if entries %}
+                        <div class="entries-timeline">
+                            {% for entry in entries %}
+                                <article class="timeline-entry important-entry entry-role-{{ entry.author.role|lower }}">
+                                    <div class="timeline-avatar">
+                                        <i class="fa-solid fa-calendar-check"></i>
+                                    </div>
+
+                                    <div class="timeline-card">
+                                        <div class="timeline-top">
+                                            <div class="timeline-author">
+                                                <strong>{{ entry.author.full_name }}</strong>
+                                                <span>{{ entry.author_role }}</span>
+                                            </div>
+
+                                            <div class="timeline-meta">
+                                                <span class="badge badge-important">{{ entry.get_event_type_display }}</span>
+                                                <span class="timeline-date">Registrado: {{ entry.created_at|date:"d/m/Y - h:i A" }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="timeline-content">
+                                            {{ entry.content }}
+                                        </div>
+
+                                        {% if entry.scheduled_for %}
+                                            <div class="scheduled-box">
+                                                <strong>Evento programado:</strong>
+                                                {{ entry.scheduled_for|date:"d/m/Y - h:i A" }}
+                                            </div>
+                                        {% endif %}
+
+                                        {% if entry.starts_new_term and entry.term_due_at %}
+                                            <div class="scheduled-box term-box">
+                                                <strong>Nuevo término:</strong>
+                                                vence el {{ entry.term_due_at|date:"d/m/Y - h:i A" }}
+                                            </div>
+                                        {% endif %}
+
+                                        {% if entry.documents.all %}
+                                            <div class="documents-block">
+                                                <h4>Archivos adjuntos</h4>
+                                                <div class="documents-list">
+                                                    {% for doc in entry.documents.all %}
+                                                        <a class="document-pill" href="{{ doc.file.url }}" target="_blank">
+                                                            <i class="fa-solid fa-paperclip"></i>
+                                                            <span>{{ doc.original_name }}</span>
+                                                        </a>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            No hay entradas registradas en la bitácora todavía.
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+
+        <div class="bitacora-bottom-actions">
+            <a href="{% url 'case_detail' case.id %}" class="secondary-button">
+                <i class="fa-solid fa-house"></i>
+                <span>Volver al Detalle del Caso</span>
+            </a>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales-all.global.min.js"></script>
+
+<script>
+/* ================================================================
+   CALENDAR — configuration & helpers
+   ================================================================ */
+const CAL = {
+    caseId:     {{ case.id }},
+    userRole:   '{{ request.user.role }}',
+    csrfToken:  '{{ csrf_token }}',
+    canCreate:  {% if request.user.role == 'SEC' or request.user.role == 'ASE' %}true{% else %}false{% endif %},
+    canAvail:   {% if request.user.role == 'ASE' %}true{% else %}false{% endif %},
+    canInvite:  {% if request.user.role == 'EST' or request.user.role == 'SEC' %}true{% else %}false{% endif %},
+    calendar:   null,
+};
+
+/* ─── Modal open/close ─── */
+
+function openCalendarModal() {
+    const overlay = document.getElementById('calendarModal');
+    overlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    if (!CAL.calendar) {
+        setTimeout(initFullCalendar, 60);
+    } else {
+        setTimeout(() => CAL.calendar.updateSize(), 60);
+    }
+}
+
+function closeCalendarModal() {
+    document.getElementById('calendarModal').classList.remove('is-open');
+    document.body.style.overflow = '';
+    closeCalDialog();
+}
+
+/* ─── FullCalendar init ─── */
+
+function initFullCalendar() {
+    const el = document.getElementById('fullCalendar');
+    if (!el || CAL.calendar) return;
+
+    CAL.calendar = new FullCalendar.Calendar(el, {
+        locale: 'es',
+        initialView: 'dayGridMonth',
+        height: '100%',
+        headerToolbar: {
+            left:   'prev,next today',
+            center: 'title',
+            right:  'dayGridMonth,timeGridWeek,listWeek',
+        },
+        buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', list: 'Lista' },
+        events: function(info, ok, fail) {
+            fetch(`/casos/${CAL.caseId}/calendario/eventos/`, {
+                headers: { 'X-CSRFToken': CAL.csrfToken },
+                credentials: 'same-origin',
+            })
+            .then(r => r.json())
+            .then(ok)
+            .catch(fail);
+        },
+        eventClick: function(info) {
+            info.jsEvent.preventDefault();
+            showEventDetail(info.event);
+        },
+        dateClick: function(info) {
+            if (CAL.canCreate) openEventForm(info.dateStr);
+        },
+        select: function(info) {
+            if (CAL.canCreate) openEventForm(info.startStr, info.endStr, info.allDay);
+        },
+        selectable: CAL.canCreate,
+        selectMirror: true,
+        eventDisplay: 'block',
+        nowIndicator: true,
+        dayMaxEvents: 3,
+        moreLinkText: n => `+${n} más`,
+        noEventsText: 'No hay eventos para este período.',
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: false, hour12: false },
+    });
+
+    CAL.calendar.render();
+}
+
+/* ─── Date formatter ─── */
+
+function fmtDate(isoStr) {
+    if (!isoStr) return '—';
+    try {
+        return new Date(isoStr).toLocaleString('es-CO', {
+            weekday: 'long', year: 'numeric', month: 'long',
+            day: 'numeric', hour: '2-digit', minute: '2-digit',
+        });
+    } catch(e) { return isoStr; }
+}
+
+function fmtTime(isoStr) {
+    if (!isoStr) return '—';
+    try {
+        return new Date(isoStr).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    } catch(e) { return isoStr; }
+}
+
+/* ─── Event detail dialog ─── */
+
+function showEventDetail(event) {
+    const p = event.extendedProps || {};
+    const type = p.type || 'calendar_event';
+
+    const typeMap = {
+        calendar_event: { label: p.event_type_label || 'Evento', bg: '#f0f1ff', color: '#5454e8' },
+        bitacora:       { label: 'Evento bitácora',               bg: '#f5f3ff', color: '#7c3aed' },
+        deadline:       { label: 'Fecha límite',                  bg: '#fff7ed', color: '#c2410c' },
+        appointment:    { label: 'Cita',                          bg: '#e0f2fe', color: '#0369a1' },
+        busy:           { label: 'Ocupado en otro caso',           bg: '#f1f5f9', color: '#475569' },
+        availability: {
+            label: p.is_booked ? 'Reservado' : 'Disponible',
+            bg:    p.is_booked ? '#f8fafc'   : '#dcfce7',
+            color: p.is_booked ? '#475569'   : '#166534',
+        },
+    };
+    const ti = typeMap[type] || typeMap.calendar_event;
+
+    const metaRow = (icon, label, value) => value ? `
+        <div class="cal-event-meta-row">
+            <div class="cal-event-meta-icon"><i class="${icon}"></i></div>
+            <div class="cal-event-meta-text">
+                <span class="cal-event-meta-label">${label}</span>
+                <span class="cal-event-meta-value">${value}</span>
+            </div>
+        </div>` : '';
+
+    let body = `
+        <span class="cal-event-type-badge" style="background:${ti.bg};color:${ti.color};">${ti.label}</span>
+        <p class="cal-event-detail-title">${event.title}</p>
+        <div class="cal-event-meta">
+            ${metaRow('fa-regular fa-calendar', 'Inicio', fmtDate(event.startStr))}
+            ${event.end ? metaRow('fa-regular fa-clock', 'Fin', fmtTime(event.endStr)) : ''}
+            ${metaRow('fa-solid fa-user', 'Registrado por', p.created_by || '')}
+            ${metaRow('fa-solid fa-align-left', 'Descripción', p.description || '')}
+            ${metaRow('fa-solid fa-circle-info', 'Estado', p.status || '')}
+            ${p.booked_by ? metaRow('fa-solid fa-user-check', 'Reservado por', p.booked_by) : ''}
+        </div>
+        ${p.teams_link ? `<a href="${p.teams_link}" target="_blank" rel="noopener" class="cal-teams-link">
+            <i class="fa-solid fa-video"></i> Unirse en Teams</a>` : ''}
+    `;
+
+    /* action buttons */
+    let actions = '';
+    if (type === 'availability' && p.can_request && !p.is_booked) {
+        actions += `<button class="cal-btn cal-btn-success" onclick="openInviteDialog(${p.slot_id},
+            '${(p.advisor_name||'').replace(/'/g,"\\'")}',
+            '${event.startStr}', '${event.endStr}',
+            '${(p.teams_link||'').replace(/'/g,"\\'")}')">
+            <i class="fa-solid fa-envelope"></i> Solicitar reunión</button>`;
+    }
+    if (p.can_delete) {
+        const rawId = event.id.replace(/^(cal_|avail_)/, '');
+        const delUrl = type === 'availability'
+            ? `/casos/${CAL.caseId}/calendario/disponibilidad/${rawId}/eliminar/`
+            : `/casos/${CAL.caseId}/calendario/evento/${rawId}/eliminar/`;
+        actions += `<button class="cal-btn cal-btn-danger" onclick="deleteCalItem('${delUrl}','${event.id}')">
+            <i class="fa-solid fa-trash"></i> Eliminar</button>`;
+    }
+    if (actions) {
+        body += `<div class="cal-form-actions">${actions}</div>`;
+    }
+
+    openCalDialog('Detalle del evento', body);
+}
+
+/* ─── Create event form ─── */
+
+function openEventForm(startDate, endDate, allDay) {
+    const sv = startDate ? startDate.substring(0, 16) : '';
+    const ev2 = (endDate && !allDay) ? endDate.substring(0, 16) : '';
+
+    openCalDialog('Nuevo evento', `
+        <form id="_calEvtForm" onsubmit="submitEventForm(event)">
+            <div class="cal-form-group">
+                <label class="cal-form-label">Título *</label>
+                <input class="cal-form-input" id="_cef_title" required placeholder="Ej: Reunión de seguimiento">
+            </div>
+            <div class="cal-form-group">
+                <label class="cal-form-label">Tipo</label>
+                <select class="cal-form-select" id="_cef_type">
+                    <option value="REU">Reunión</option>
+                    <option value="ENT">Entrega</option>
+                    <option value="CIT">Cita</option>
+                    <option value="PRE">Presentación ante Juzgado</option>
+                    <option value="OTR">Otro</option>
+                </select>
+            </div>
+            <div class="cal-form-row">
+                <div class="cal-form-group">
+                    <label class="cal-form-label">Inicio *</label>
+                    <input type="datetime-local" class="cal-form-input" id="_cef_start" value="${sv}" required>
+                </div>
+                <div class="cal-form-group">
+                    <label class="cal-form-label">Fin</label>
+                    <input type="datetime-local" class="cal-form-input" id="_cef_end" value="${ev2}">
+                </div>
+            </div>
+            <div class="cal-form-group">
+                <label class="cal-form-label">Descripción</label>
+                <textarea class="cal-form-textarea" id="_cef_desc" placeholder="Descripción opcional…"></textarea>
+            </div>
+            <div class="cal-form-group">
+                <label class="cal-form-label">Enlace Teams (opcional)</label>
+                <input type="url" class="cal-form-input" id="_cef_teams" placeholder="https://teams.microsoft.com/…">
+            </div>
+            <div class="cal-form-actions">
+                <button type="button" class="cal-btn cal-btn-secondary" onclick="closeCalDialog()">Cancelar</button>
+                <button type="submit" class="cal-btn cal-btn-primary" id="_cef_submit">
+                    <i class="fa-solid fa-plus"></i> Crear evento
+                </button>
+            </div>
+        </form>`);
+}
+
+function submitEventForm(e) {
+    e.preventDefault();
+    const btn = document.getElementById('_cef_submit');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    fetch(`/casos/${CAL.caseId}/calendario/evento/crear/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CAL.csrfToken },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            title:          document.getElementById('_cef_title').value.trim(),
+            event_type:     document.getElementById('_cef_type').value,
+            start_datetime: document.getElementById('_cef_start').value,
+            end_datetime:   document.getElementById('_cef_end').value || null,
+            description:    document.getElementById('_cef_desc').value,
+            teams_link:     document.getElementById('_cef_teams').value,
+        }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.id) { CAL.calendar.refetchEvents(); closeCalDialog(); }
+        else { alert(d.error || 'Error al crear el evento'); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus"></i> Crear evento'; }
+    })
+    .catch(() => { alert('Error de conexión'); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus"></i> Crear evento'; });
+}
+
+/* ─── Availability form (ASE only) ─── */
+
+function openAvailForm(startDate, endDate) {
+    const sv = startDate ? startDate.substring(0, 16) : '';
+    const ev2 = endDate  ? endDate.substring(0, 16)  : sv;
+
+    openCalDialog('Mi disponibilidad', `
+        <p style="font-size:.86rem;color:#5b6475;margin:0 0 14px;">
+            Define una franja en la que estás disponible para reunirte con el estudiante de este caso.
+            Si ya tienes el enlace de Teams, inclúyelo para que el estudiante pueda unirse.
+        </p>
+        <form id="_calAvForm" onsubmit="submitAvailForm(event)">
+            <div class="cal-form-row">
+                <div class="cal-form-group">
+                    <label class="cal-form-label">Inicio *</label>
+                    <input type="datetime-local" class="cal-form-input" id="_cav_start" value="${sv}" required>
+                </div>
+                <div class="cal-form-group">
+                    <label class="cal-form-label">Fin *</label>
+                    <input type="datetime-local" class="cal-form-input" id="_cav_end" value="${ev2}" required>
+                </div>
+            </div>
+            <div class="cal-form-group">
+                <label class="cal-form-label">Enlace Teams (opcional)</label>
+                <input type="url" class="cal-form-input" id="_cav_teams" placeholder="https://teams.microsoft.com/…">
+            </div>
+            <div class="cal-form-actions">
+                <button type="button" class="cal-btn cal-btn-secondary" onclick="closeCalDialog()">Cancelar</button>
+                <button type="submit" class="cal-btn cal-btn-success" id="_cav_submit">
+                    <i class="fa-solid fa-clock"></i> Agregar disponibilidad
+                </button>
+            </div>
+        </form>`);
+}
+
+function submitAvailForm(e) {
+    e.preventDefault();
+    const btn = document.getElementById('_cav_submit');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    fetch(`/casos/${CAL.caseId}/calendario/disponibilidad/crear/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CAL.csrfToken },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            start_datetime: document.getElementById('_cav_start').value,
+            end_datetime:   document.getElementById('_cav_end').value,
+            teams_link:     document.getElementById('_cav_teams').value,
+        }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.id) { CAL.calendar.refetchEvents(); closeCalDialog(); }
+        else { alert(d.error || 'Error al guardar disponibilidad'); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-clock"></i> Agregar disponibilidad'; }
+    })
+    .catch(() => { alert('Error de conexión'); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-clock"></i> Agregar disponibilidad'; });
+}
+
+/* ─── Meeting invitation (EST / SEC) ─── */
+
+function openInviteDialog(slotId, advisorName, startStr, endStr, teamsLink) {
+    const timeStr = `${fmtDate(startStr)} – ${fmtTime(endStr)}`;
+    const teamsHtml = teamsLink
+        ? `<a href="${teamsLink}" target="_blank" rel="noopener" class="cal-teams-link" style="margin-bottom:14px;">
+               <i class="fa-solid fa-video"></i> Enlace Teams disponible</a>`
+        : '';
+
+    openCalDialog('Solicitar reunión', `
+        <div class="cal-invite-slot">
+            <div class="cal-invite-slot-time">${timeStr}</div>
+            <div class="cal-invite-slot-advisor">Asesor: ${advisorName}</div>
+        </div>
+        ${teamsHtml}
+        <form id="_calInvForm" onsubmit="submitInvitation(event,${slotId})">
+            <div class="cal-form-group">
+                <label class="cal-form-label">Mensaje para el asesor (opcional)</label>
+                <textarea class="cal-form-textarea" id="_cinv_msg" placeholder="Ej: Necesito revisar el avance del caso…"></textarea>
+            </div>
+            <div class="cal-form-actions">
+                <button type="button" class="cal-btn cal-btn-secondary" onclick="closeCalDialog()">Cancelar</button>
+                <button type="submit" class="cal-btn cal-btn-success" id="_cinv_submit">
+                    <i class="fa-solid fa-envelope"></i> Enviar invitación
+                </button>
+            </div>
+        </form>`);
+}
+
+function submitInvitation(e, slotId) {
+    e.preventDefault();
+    const btn = document.getElementById('_cinv_submit');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+
+    fetch(`/casos/${CAL.caseId}/calendario/disponibilidad/${slotId}/solicitar/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CAL.csrfToken },
+        credentials: 'same-origin',
+        body: JSON.stringify({ message: document.getElementById('_cinv_msg').value.trim() }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            CAL.calendar.refetchEvents();
+            openCalDialog('Invitación enviada', `
+                <div class="cal-toast"><i class="fa-solid fa-circle-check"></i>
+                    Invitación enviada correctamente. El asesor recibirá un correo con los detalles de la reunión.
+                </div>
+                <div class="cal-form-actions">
+                    <button class="cal-btn cal-btn-primary" onclick="closeCalDialog()">Entendido</button>
+                </div>`);
+        } else {
+            alert(d.error || 'Error al enviar la invitación');
+            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-envelope"></i> Enviar invitación';
+        }
+    })
+    .catch(() => { alert('Error de conexión'); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-envelope"></i> Enviar invitación'; });
+}
+
+/* ─── Delete ─── */
+
+function deleteCalItem(url, eventId) {
+    if (!confirm('¿Eliminar este elemento del calendario? Esta acción no se puede deshacer.')) return;
+    fetch(url, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': CAL.csrfToken },
+        credentials: 'same-origin',
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) { CAL.calendar.refetchEvents(); closeCalDialog(); }
+        else alert(d.error || 'No se pudo eliminar');
+    })
+    .catch(() => alert('Error de conexión'));
+}
+
+/* ─── Dialog helpers ─── */
+
+function openCalDialog(title, bodyHTML) {
+    document.getElementById('calDialogTitle').textContent = title;
+    document.getElementById('calDialogBody').innerHTML = bodyHTML;
+    document.getElementById('calDialogOverlay').classList.add('is-open');
+}
+
+function closeCalDialog() {
+    const ov = document.getElementById('calDialogOverlay');
+    if (ov) ov.classList.remove('is-open');
+}
+
+function openSummaryModal() {
+    const modal = document.getElementById('summaryModal');
+    if (!modal) return;
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => modal.classList.add('is-open'));
+    document.body.style.overflow = 'hidden';
+}
+
+function closeSummaryModal() {
+    const modal = document.getElementById('summaryModal');
+    if (!modal) return;
+    modal.setAttribute('aria-hidden', 'true');
+    modal.classList.remove('is-open');
+    modal.hidden = true;
+    document.body.style.overflow = '';
+}
+
+/* ─── Close on overlay click ─── */
+document.addEventListener('DOMContentLoaded', function() {
+    const summaryOverlay = document.getElementById('summaryModal');
+    if (summaryOverlay) {
+        summaryOverlay.addEventListener('click', function(e) {
+            if (e.target === summaryOverlay) closeSummaryModal();
+        });
+    }
+
+    const calOverlay = document.getElementById('calendarModal');
+    if (calOverlay) {
+        calOverlay.addEventListener('click', function(e) {
+            if (e.target === calOverlay) closeCalendarModal();
+        });
+    }
+    const dialogOverlay = document.getElementById('calDialogOverlay');
+    if (dialogOverlay) {
+        dialogOverlay.addEventListener('click', function(e) {
+            if (e.target === dialogOverlay) closeCalDialog();
+        });
+    }
+});
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const fileInput = document.getElementById("id_files");
+        const selectedFiles = document.getElementById("selected-files");
+        const startsNewTerm = document.getElementById("id_starts_new_term");
+        const termFields = document.getElementById("termFields");
+        const notifyCheckbox = document.getElementById("id_notify");
+        const recipientsPanel = document.getElementById("emailRecipientsPanel");
+
+        function escapeHtml(value) {
+            return value.replace(/[&<>"']/g, function (char) {
+                return {
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#039;",
+                }[char];
+            });
+        }
+
+        function updateFileDisplay(files) {
+            if (!selectedFiles) return;
+            if (!files || files.length === 0) {
+                selectedFiles.innerHTML = '<i class="fa-regular fa-folder-open"></i><span>Ningún archivo seleccionado</span>';
+                return;
+            }
+            selectedFiles.innerHTML = Array.from(files).map(f => `
+                <span class="selected-file-pill">
+                    <i class="fa-solid fa-paperclip"></i>
+                    ${escapeHtml(f.name)}
+                </span>
+            `).join('');
+        }
+
+        if (fileInput && selectedFiles) {
+            fileInput.addEventListener("change", function () {
+                updateFileDisplay(fileInput.files);
+            });
+        }
+
+        const uploadZone = document.getElementById("uploadZone");
+        if (uploadZone && fileInput) {
+            uploadZone.addEventListener("dragover", function (e) {
+                e.preventDefault();
+                uploadZone.classList.add("drag-over");
+            });
+            uploadZone.addEventListener("dragleave", function (e) {
+                if (!uploadZone.contains(e.relatedTarget)) {
+                    uploadZone.classList.remove("drag-over");
+                }
+            });
+            uploadZone.addEventListener("drop", function (e) {
+                e.preventDefault();
+                uploadZone.classList.remove("drag-over");
+                const dt = e.dataTransfer;
+                if (dt && dt.files && dt.files.length > 0) {
+                    const dataTransfer = new DataTransfer();
+                    Array.from(dt.files).forEach(f => dataTransfer.items.add(f));
+                    fileInput.files = dataTransfer.files;
+                    updateFileDisplay(fileInput.files);
+                }
+            });
+        }
+
+        function syncTermFields() {
+            if (!startsNewTerm || !termFields) return;
+            termFields.classList.toggle("is-visible", startsNewTerm.checked);
+        }
+
+        if (startsNewTerm && termFields) {
+            startsNewTerm.addEventListener("change", syncTermFields);
+            syncTermFields();
+        }
+
+        function syncRecipientsPanel() {
+            if (!notifyCheckbox || !recipientsPanel) return;
+            recipientsPanel.style.display = notifyCheckbox.checked ? "block" : "none";
+        }
+
+        if (notifyCheckbox && recipientsPanel) {
+            notifyCheckbox.addEventListener("change", syncRecipientsPanel);
+            // Si el checkbox está marcado (por defecto o por re-render), mostrar panel
+            syncRecipientsPanel();
+        }
+
+        document.querySelectorAll(".timeline-content").forEach(function (el) {
+            el.innerHTML = el.innerHTML.replace(/\bMotivo:/g, "<strong>Motivo:</strong>");
+        });
+    });
+</script>
+{% endblock %}

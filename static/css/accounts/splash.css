@@ -1,0 +1,32 @@
+.splash-page {
+    min-height: 100vh;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.splash-content {
+    text-align: center;
+    padding: 24px;
+}
+
+.splash-logo {
+    width: min(440px, 82vw);
+    height: auto;
+    margin-bottom: 30px;
+}
+
+.splash-content h1 {
+    margin: 0 0 18px 0;
+    font-size: clamp(2rem, 4vw, 3.3rem);
+    color: #1f2937;
+    font-weight: 800;
+}
+
+.splash-content p {
+    margin: 0;
+    color: #98a2b3;
+    font-size: 1.3rem;
+}

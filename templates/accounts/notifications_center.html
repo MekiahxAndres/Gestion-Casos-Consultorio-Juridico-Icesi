@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Centro de Notificaciones{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts/notifications_center.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="notifications-page">
+    <header class="notifications-header">
+        <div class="notifications-header-left">
+            <span class="section-label">Vista {{ user_data.role_name }}</span>
+            <h1>Centro de Notificaciones</h1>
+            <p>
+                {% if can_view_advisor_notifications %}
+                    Revisa documentos, eventos importantes y casos que requieren seguimiento.
+                {% else %}
+                    Revisa alertas operativas y casos que requieren seguimiento.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="notifications-header-actions">
+            <a href="{% url 'dashboard_redirect' %}" class="back-button">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Volver al panel</span>
+            </a>
+        </div>
+    </header>
+
+    <section class="notifications-summary">
+        <article class="summary-card total">
+            <div class="summary-icon">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <div>
+                <h3>Total pendiente</h3>
+                <p>{{ total_notifications }}</p>
+            </div>
+        </article>
+
+        {% if can_view_document_notifications %}
+            <article class="summary-card documents">
+                <div class="summary-icon">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                </div>
+                <div>
+                    <h3>Documentos</h3>
+                    <p>{{ total_documents }}</p>
+                </div>
+            </article>
+
+            <article class="summary-card events">
+                <div class="summary-icon">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                </div>
+                <div>
+                    <h3>Eventos</h3>
+                    <p>{{ total_events }}</p>
+                </div>
+            </article>
+        {% endif %}
+
+        <article class="summary-card deadlines">
+            <div class="summary-icon">
+                <i class="fa-regular fa-calendar"></i>
+            </div>
+            <div>
+                <h3>Plazos</h3>
+                <p>{{ total_deadlines }}</p>
+            </div>
+        </article>
+
+        <article class="summary-card inactivity">
+            <div class="summary-icon">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div>
+                <h3>Inactividad</h3>
+                <p>{{ total_inactivity }}</p>
+            </div>
+        </article>
+    </section>
+
+    {% if can_view_document_notifications %}
+        <section class="notifications-block priority-block">
+            <div class="section-title">
+                <div>
+                    <h2>Documentos subidos</h2>
+                    <p>Alertas para asesores cuando se adjuntan soportes a casos asignados.</p>
+                </div>
+                <span>{{ total_documents }}</span>
+            </div>
+
+            {% if document_notifications %}
+                <div class="notifications-list">
+                    {% for notification in document_notifications %}
+                        <article class="notification-card document-card">
+                            <div class="notification-card-top">
+                                <div>
+                                    <h3>{{ notification.title }}</h3>
+                                    <small>{{ notification.created_at|date:"d/m/Y h:i A" }}</small>
+                                </div>
+                                {% if notification.case %}
+                                    <a href="{% url 'case_bitacora' notification.case.id %}" class="case-link">
+                                        Ver bitácora
+                                    </a>
+                                {% endif %}
+                            </div>
+
+                            <p>{{ notification.message }}</p>
+
+                            <div class="notification-meta">
+                                {% if notification.case %}
+                                    <span><strong>Caso:</strong> {{ notification.case.case_number }}</span>
+                                {% endif %}
+                                {% if notification.related_document %}
+                                    <span><strong>Documento:</strong> {{ notification.related_document.original_name }}</span>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fa-regular fa-circle-check"></i>
+                    <p>No hay documentos pendientes por revisar.</p>
+                </div>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {% if can_view_advisor_notifications %}
+        <section class="notifications-block priority-block">
+            <div class="section-title">
+                <div>
+                    <h2>Eventos importantes</h2>
+                    <p>Seguimientos registrados en bitácora que requieren revisión del asesor.</p>
+                </div>
+                <span>{{ total_events }}</span>
+            </div>
+
+            {% if event_notifications %}
+                <div class="notifications-list">
+                    {% for notification in event_notifications %}
+                        <article class="notification-card event-card">
+                            <div class="notification-card-top">
+                                <div>
+                                    <h3>{{ notification.title }}</h3>
+                                    <small>{{ notification.created_at|date:"d/m/Y h:i A" }}</small>
+                                </div>
+                                {% if notification.case %}
+                                    <a href="{% url 'case_bitacora' notification.case.id %}" class="case-link">
+                                        Ver bitácora
+                                    </a>
+                                {% endif %}
+                            </div>
+
+                            <p>{{ notification.message }}</p>
+
+                            <div class="notification-meta">
+                                {% if notification.case %}
+                                    <span><strong>Caso:</strong> {{ notification.case.case_number }}</span>
+                                {% endif %}
+                                {% if notification.related_entry and notification.related_entry.scheduled_for %}
+                                    <span><strong>Fecha del evento:</strong> {{ notification.related_entry.scheduled_for|date:"d/m/Y h:i A" }}</span>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fa-regular fa-circle-check"></i>
+                    <p>No hay eventos importantes pendientes.</p>
+                </div>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    <div class="notifications-grid">
+        <section class="notifications-block">
+            <div class="section-title">
+                <div>
+                    <h2>Plazos y alertas</h2>
+                    <p>Fechas límite e información operativa del caso.</p>
+                </div>
+                <span>{{ total_alerts }}</span>
+            </div>
+
+            {% if alert_notifications %}
+                <div class="notifications-list compact-list">
+                    {% for notification in alert_notifications %}
+                        <article class="notification-card alert-card">
+                            <div class="notification-card-top">
+                                <div>
+                                    <h3>{{ notification.title }}</h3>
+                                    <small>{{ notification.created_at|date:"d/m/Y h:i A" }}</small>
+                                </div>
+                            </div>
+
+                            <p>{{ notification.message }}</p>
+
+                            <div class="notification-meta">
+                                {% if notification.case %}
+                                    <span><strong>Caso:</strong> {{ notification.case.case_number }}</span>
+                                {% endif %}
+                                {% if notification.deadline %}
+                                    <span><strong>Fecha límite:</strong> {{ notification.deadline.title }}</span>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fa-regular fa-calendar-check"></i>
+                    <p>No hay plazos o alertas pendientes.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="notifications-block">
+            <div class="section-title">
+                <div>
+                    <h2>Inactividad</h2>
+                    <p>Casos sin movimientos recientes registrados.</p>
+                </div>
+                <span>{{ total_inactivity }}</span>
+            </div>
+
+            {% if inactivity_notifications %}
+                <div class="notifications-list compact-list">
+                    {% for notification in inactivity_notifications %}
+                        <article class="notification-card inactivity-card">
+                            <div class="notification-card-top">
+                                <div>
+                                    <h3>{{ notification.title }}</h3>
+                                    <small>{{ notification.created_at|date:"d/m/Y h:i A" }}</small>
+                                </div>
+                            </div>
+
+                            <p>{{ notification.message }}</p>
+
+                            <div class="notification-meta">
+                                {% if notification.case %}
+                                    <span><strong>Caso:</strong> {{ notification.case.case_number }}</span>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fa-regular fa-circle-check"></i>
+                    <p>No hay casos marcados por inactividad.</p>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

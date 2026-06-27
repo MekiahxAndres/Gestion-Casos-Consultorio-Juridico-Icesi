@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Tablero de Citas No Atendidas{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cases/missed_appointments_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <a href="{% url 'dashboard_redirect' %}" class="logo-link">
+                <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+            </a>
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ user_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ user_data.full_name }}</strong>
+                    <span>{{ user_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow"><i class="fa-solid fa-chevron-down"></i></div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <a href="{% url 'notifications_center' %}" class="dropdown-link">
+                    <i class="fa-solid fa-bell"></i> Notificaciones
+                </a>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content missed-appointments-page">
+        <div class="page-heading-row">
+            <div>
+                <h1 class="page-title">Tablero de citas no atendidas</h1>
+                <p class="page-subtitle">Citas con fecha vencida cuyo estado no está marcado como atendida.</p>
+            </div>
+            <a href="{% url 'dashboard_redirect' %}" class="secondary-button">
+                <i class="fa-solid fa-arrow-left"></i> Volver al panel
+            </a>
+        </div>
+
+        <section class="summary-grid">
+            <article class="summary-card">
+                <span>Total no atendidas</span>
+                <strong>{{ total_missed }}</strong>
+            </article>
+            <article class="summary-card danger">
+                <span>No asistió</span>
+                <strong>{{ no_show_count }}</strong>
+            </article>
+            <article class="summary-card warning">
+                <span>Pendiente vencida</span>
+                <strong>{{ overdue_pending_count }}</strong>
+            </article>
+        </section>
+
+        <section class="dashboard-grid">
+            <article class="card board-card">
+                <div class="card-section">
+                    <div class="board-title-row">
+                        <div>
+                            <h2>No asistió</h2>
+                            <p>Citas vencidas registradas explícitamente como inasistencia.</p>
+                        </div>
+                        <span class="badge badge-danger">{{ no_show_count }}</span>
+                    </div>
+
+                    {% include "cases/partials/missed_appointments_table.html" with items=no_show_appointments empty_title="Sin inasistencias" empty_text="No hay citas vencidas marcadas como no asistió." %}
+                </div>
+            </article>
+
+            <article class="card board-card">
+                <div class="card-section">
+                    <div class="board-title-row">
+                        <div>
+                            <h2>Pendiente vencida</h2>
+                            <p>Citas pasadas que siguen sin quedar registradas como atendidas.</p>
+                        </div>
+                        <span class="badge badge-warning">{{ overdue_pending_count }}</span>
+                    </div>
+
+                    {% include "cases/partials/missed_appointments_table.html" with items=overdue_pending_appointments empty_title="Sin pendientes vencidas" empty_text="No hay citas pendientes con fecha vencida." %}
+                </div>
+            </article>
+        </section>
+    </main>
+</div>
+{% endblock %}

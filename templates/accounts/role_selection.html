@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Selección de Rol{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts/role_selection.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="role-selection-page">
+    <div class="role-selection-wrapper">
+        <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico" class="role-logo">
+
+        <h1>Consultorio Jurídico</h1>
+        <p class="subtitle">Selecciona tu tipo de usuario</p>
+
+        <div class="role-grid">
+            <a href="{% url 'role_login' 'beneficiario' %}" class="role-card">
+                <div class="role-icon">👤</div>
+                <h3>Beneficiario/Usuario</h3>
+            </a>
+
+            <a href="{% url 'role_login' 'secretaria' %}" class="role-card">
+                <div class="role-icon">💼</div>
+                <h3>Secretaría</h3>
+            </a>
+
+            <a href="{% url 'role_login' 'estudiante' %}" class="role-card">
+                <div class="role-icon">🎓</div>
+                <h3>Estudiante</h3>
+            </a>
+
+            <a href="{% url 'role_login' 'asesor' %}" class="role-card">
+                <div class="role-icon">👥</div>
+                <h3>Asesor</h3>
+            </a>
+        </div>
+
+        <div class="footer-text">
+            Sistema de Gestión de Casos Jurídicos - Universidad Icesi
+        </div>
+    </div>
+</div>
+{% endblock %}

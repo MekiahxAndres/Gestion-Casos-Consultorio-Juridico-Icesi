@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Casos Pendientes{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cases/secretary_cases.css' %}">
+<style>
+  .pending-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+  .pending-badge {
+    background: #f59e0b;
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.25rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: 0.75rem;
+  }
+  .table-card {
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    overflow: hidden;
+  }
+  .table-card table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .table-card thead th {
+    background: #f8fafc;
+    padding: 0.85rem 1.25rem;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .table-card tbody td {
+    padding: 1rem 1.25rem;
+    font-size: 0.92rem;
+    color: #1e293b;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+  .table-card tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .table-card tbody tr:hover {
+    background: #f8fafc;
+  }
+  .status-badge {
+    display: inline-block;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: #fef3c7;
+    color: #b45309;
+  }
+  .btn-assign {
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.18s;
+  }
+  .btn-assign:hover {
+    background: #4338ca;
+    color: #fff;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 3.5rem 2rem;
+    color: #94a3b8;
+  }
+  .empty-state svg {
+    margin-bottom: 1rem;
+    opacity: 0.4;
+  }
+  .pagination-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 1.25rem;
+    border-top: 1px solid #f1f5f9;
+  }
+  .pagination-row a,
+  .pagination-row span {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.4rem;
+    font-size: 0.85rem;
+    color: #4f46e5;
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+  }
+  .pagination-row span.current {
+    background: #4f46e5;
+    color: #fff;
+    border-color: #4f46e5;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:1100px;margin:0 auto;padding:2rem 1.5rem;">
+
+  <div class="pending-header">
+    <div>
+      <h1 style="font-size:1.85rem;font-weight:800;color:#0f172a;margin:0;">
+        Casos Pendientes
+        <span class="pending-badge">{{ total_pending }}</span>
+      </h1>
+      <p style="color:#64748b;margin:0.35rem 0 0;">Casos sin asignar que requieren atención</p>
+    </div>
+    <a href="{% url 'dashboard_redirect' %}" style="color:#4f46e5;font-weight:600;font-size:0.92rem;text-decoration:none;">
+      ← Volver al Dashboard
+    </a>
+  </div>
+
+  <div class="table-card">
+    {% if cases %}
+      <table>
+        <thead>
+          <tr>
+            <th># Caso</th>
+            <th>Beneficiario</th>
+            <th>Sala</th>
+            <th>Trámite</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            {% if request.user.role == 'SEC' %}
+            <th>Acción</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for case in cases %}
+          <tr>
+            <td><strong>{{ case.case_number }}</strong></td>
+            <td>{{ case.beneficiary.full_name }}</td>
+            <td>{{ case.get_category_display|default:"Sin sala" }}</td>
+            <td>{{ case.case_type_specific|default:"—" }}</td>
+            <td>{{ case.created_at|date:"d/m/Y" }}</td>
+            <td><span class="status-badge">Sin asignar</span></td>
+            {% if request.user.role == 'SEC' %}
+            <td>
+              <a href="{% url 'case_distribution' case_id=case.id %}" class="btn-assign">
+                Asignar
+              </a>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if is_paginated %}
+      <div class="pagination-row">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}">‹</a>
+        {% endif %}
+        {% for num in paginator.page_range %}
+          {% if page_obj.number == num %}
+            <span class="current">{{ num }}</span>
+          {% else %}
+            <a href="?page={{ num }}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">›</a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    {% else %}
+      <div class="empty-state">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p style="font-size:1.05rem;font-weight:600;color:#475569;margin:0;">No hay casos pendientes</p>
+        <p style="font-size:0.9rem;margin:0.4rem 0 0;">Todos los casos han sido asignados.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

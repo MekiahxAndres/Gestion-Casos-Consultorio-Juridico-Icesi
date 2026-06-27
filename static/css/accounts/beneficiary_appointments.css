@@ -1,0 +1,50 @@
+.appointments-section {
+    margin-bottom: 34px;
+}
+
+.appointments-section h2 {
+    margin: 0 0 20px 0;
+    font-size: 1.9rem;
+}
+
+.appointment-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    padding: 24px;
+    margin-bottom: 18px;
+    box-shadow: 0 10px 26px rgba(16, 24, 40, 0.05);
+}
+
+.appointment-card h3 {
+    margin: 0 0 16px 0;
+    font-size: 1.5rem;
+}
+
+.appointment-card p {
+    margin: 0 0 10px 0;
+    color: #344054;
+    font-size: 1.02rem;
+}
+
+.appointment-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.notes-box {
+    margin-top: 16px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px 18px;
+    line-height: 1.7;
+}
+
+.bottom-back {
+    display: flex;
+    justify-content: center;
+}

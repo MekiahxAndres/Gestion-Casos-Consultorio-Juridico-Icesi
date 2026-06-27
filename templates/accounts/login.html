@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts/login.css' %}">
+{% endblock %}
+
+{% block global_messages %}{% endblock %}
+
+{% block content %}
+<main class="login-page">
+    <section class="login-visual" aria-label="Universidad Icesi"></section>
+
+    <section class="login-panel" aria-label="Formulario de inicio de sesión">
+        <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico" class="panel-logo">
+
+        <div class="login-card">
+            <div class="login-heading">
+                <span class="section-label">Acceso institucional</span>
+                <h2>Inicia sesión</h2>
+                <p style="white-space: nowrap;">Ingresa con tus credenciales para continuar a tu panel correspondiente.</p>
+            </div>
+
+            {% if messages %}
+                <div class="inline-messages">
+                    {% for message in messages %}
+                        {% if 'error' in message.tags or 'warning' in message.tags %}
+                            <div class="inline-message {{ message.tags|default:'info' }}">
+                                {{ message }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" class="login-form">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="document_number">{{ user_label|default:"Número de documento" }}</label>
+                    <input
+                        type="text"
+                        name="document_number"
+                        id="document_number"
+                        placeholder="{{ user_placeholder|default:'Ingresa tu número de documento' }}"
+                        autocomplete="username"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <div style="position: relative;">
+                        <input
+                            type="password"
+                            name="password"
+                            id="password"
+                            placeholder="Ingresa tu contraseña"
+                            autocomplete="current-password"
+                            required
+                            style="width: 100%; padding-right: 44px; box-sizing: border-box;"
+                        >
+                        <button
+                            type="button"
+                            id="togglePassword"
+                            onclick="togglePasswordVisibility()"
+                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 0; color: #9ca3af; display: flex; align-items: center;"
+                            aria-label="Mostrar contraseña"
+                        >
+                            <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg id="eyeOffIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+                                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-button">Ingresar</button>
+            </form>
+
+            <a href="{% url 'password_reset_request' %}" class="forgot-link" style="display: block; text-align: center;">¿Olvidaste tu contraseña?</a>
+
+            <p class="privacy-text" style="text-align: center; color: #b0b7c3; margin-top: 40px; font-size: 0.96rem;">
+                Tus datos están protegidos según la Ley de Protección de Datos Personales.
+            </p>
+        </div>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePasswordVisibility() {
+    var input = document.getElementById('password');
+    var eyeOn = document.getElementById('eyeIcon');
+    var eyeOff = document.getElementById('eyeOffIcon');
+    var btn = document.getElementById('togglePassword');
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeOn.style.display = 'none';
+        eyeOff.style.display = 'block';
+        btn.setAttribute('aria-label', 'Ocultar contraseña');
+        btn.style.color = '#7c6fd9';
+    } else {
+        input.type = 'password';
+        eyeOn.style.display = 'block';
+        eyeOff.style.display = 'none';
+        btn.setAttribute('aria-label', 'Mostrar contraseña');
+        btn.style.color = '#9ca3af';
+    }
+}
+</script>
+{% endblock %}

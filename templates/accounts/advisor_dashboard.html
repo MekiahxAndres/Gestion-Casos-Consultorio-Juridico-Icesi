@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Panel Asesor{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts/advisor_dashboard.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <a href="{% url 'dashboard_redirect' %}" class="logo-link" style="display: inline-block; cursor: pointer;">
+                <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+            </a>
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ user_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ user_data.full_name }}</strong>
+                    <span>{{ user_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow"><i class="fa-solid fa-chevron-down"></i></div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content">
+        <div class="page-heading-row">
+            <div>
+                <h1 class="page-title">Panel de Supervisión - Asesor</h1>
+                <p class="page-subtitle">Monitorea el progreso de todos los casos</p>
+            </div>
+
+            <a href="{% url 'notifications_center' %}" class="notifications-entry-button">
+                <i class="fa-solid fa-bell"></i>
+                <span>Notificaciones</span>
+            </a>
+        </div>
+
+        <section class="stats-grid">
+            <article class="stat-card" style="border-left: 4px solid #5454e8;">
+                <div class="stat-copy">
+                    <span>Casos Supervisados</span>
+                    <strong>{{ supervised_cases }}</strong>
+                </div>
+                <div class="stat-icon blue"><i class="fa-regular fa-folder-open"></i></div>
+            </article>
+
+            <article class="stat-card" style="border-left: 4px solid #7c6fd9;">
+                <div class="stat-copy">
+                    <span>Estudiantes</span>
+                    <strong>{{ students_count }}</strong>
+                </div>
+                <div class="stat-icon purple"><i class="fa-solid fa-users"></i></div>
+            </article>
+
+            <article class="stat-card" style="border-left: 4px solid #1f8f4d;">
+                <div class="stat-copy">
+                    <span>Casos al Día</span>
+                    <strong>{{ cases_on_time }}</strong>
+                </div>
+                <div class="stat-icon green"><i class="fa-solid fa-chart-line"></i></div>
+            </article>
+
+            <article class="stat-card" style="border-left: 4px solid #dc2626;">
+                <div class="stat-copy">
+                    <span>Con Retrasos</span>
+                    <strong>{{ delayed_cases }}</strong>
+                </div>
+                <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </article>
+        </section>
+
+        <section class="shortcut-grid">
+            <a href="{% url 'case_distribution_list' %}" class="shortcut-card primary-card">
+                <i class="fa-solid fa-share-nodes"></i> Reparto de Casos
+            </a>
+            <a href="{% url 'delayed_cases_dashboard' %}" class="shortcut-card">
+                <i class="fa-solid fa-clock"></i> Casos Retrasados
+            </a>
+            <a href="{% url 'missed_appointments_dashboard' %}" class="shortcut-card">
+                <i class="fa-regular fa-calendar-xmark"></i> Citas No Atendidas
+            </a>
+        </section>
+
+        <section class="card alerts-panel">
+            <div class="card-section">
+                <h2 class="card-title">Alertas y Notificaciones</h2>
+
+                <div class="alerts-list">
+                    {% for alert in alerts %}
+                        <article class="advisor-alert">
+                            <div class="alert-copy">
+                                <div class="alert-top">
+                                    <span class="badge badge-danger">Fecha vencida</span>
+                                    <strong>{{ alert.case.case_number }}</strong>
+                                </div>
+
+                                <p><strong>{{ alert.case.beneficiary.full_name }}:</strong> {{ alert.primary_deadline.title }} - {{ alert.days_label }}</p>
+                            </div>
+
+                            <a href="{% url 'case_detail' alert.case.id %}" class="ghost-button">Ver Caso</a>
+                        </article>
+                    {% empty %}
+                        <p class="empty-text">No hay casos con fechas vencidas en este momento.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

@@ -1,0 +1,602 @@
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Reparto de Casos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cases/case_distribution.css' %}?v=8">
+<style>
+    @keyframes fadeOut {
+        to {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <a href="{% url 'dashboard_redirect' %}" class="logo-link" style="display: inline-block; cursor: pointer;">
+                <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+            </a>
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ user_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ user_data.full_name }}</strong>
+                    <span>{{ user_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow">⌄</div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mostrar notificación de reparto automático solo si viene en URL -->
+    <!-- Las notificaciones ahora usan Django messages -->
+
+    <main class="page-content">
+        <div class="page-head">
+            <h1 class="page-title">Reparto de Casos</h1>
+            <p class="page-subtitle">Asigna casos a estudiantes manualmente o usa el reparto automático</p>
+        </div>
+
+        <div class="banner-reparto-automatico"
+            style="background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 24px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div class="info-reparto">
+                <h2
+                    style="margin: 0 0 8px 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; color: white;">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Reparto Automático Equitativo
+                </h2>
+                <p style="margin: 0; font-size: 1rem; opacity: 0.9; color: white;">Distribuye automáticamente los casos
+                    completos entre los estudiantes de forma balanceada</p>
+            </div>
+
+            <div class="accion-reparto">
+                <form action="{% url 'reparto_automatico' %}" method="POST" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit"
+                        style="background-color: white; color: #6366f1; padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: transform 0.2s;">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Repartir Ahora
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Barra de Búsqueda -->
+        <div class="search-wrapper">
+            <div class="search-input-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="search-input" placeholder="Buscar por número" maxlength="5">
+            </div>
+        </div>
+
+        <!-- Lista de Casos -->
+        {% if cases %}
+        <div class="cases-wrapper">
+            {% for item in cases %}
+            <div class="case-box {% if item.is_complete %}case-complete{% else %}case-incomplete{% endif %}"
+                data-search="{{ item.case.case_number|lower }}" data-case-id="{{ item.case.id }}"
+                data-case-number="{{ item.case.case_number }}" data-beneficiary-id="{{ item.case.beneficiary.id }}"
+                data-student-name="test">
+
+                <!-- Badge de Estado -->
+                <div class="status-badge {% if item.is_complete %}badge-complete{% else %}badge-incomplete{% endif %}">
+                    {% if item.is_complete %}
+                    ✓ Completo
+                    {% else %}
+                    ⚠ Incompleto
+                    {% endif %}
+                </div>
+
+                <!-- Nombre del Beneficiario -->
+                <h3 class="beneficiary-name">{{ item.case.beneficiary.full_name }}</h3>
+
+                <!-- Metadata -->
+                <div class="metadata">
+                    <span>número: {{ item.case.case_number }}</span>
+                    <span class="separator">|</span>
+                    <span>Cédula: {{ item.case.beneficiary.document_number }}</span>
+                    <span class="separator">|</span>
+                    <span>Ingreso: {{ item.case.created_at|date:"d/m/Y" }}</span>
+                </div>
+
+                <!-- Descripción -->
+                <div class="section">
+                    <label class="section-title">Descripción:</label>
+                    <p class="section-content">{{ item.case.description }}</p>
+                </div>
+
+                <!-- Documentos Adjuntos -->
+                <div class="section">
+                    <label class="section-title">Documentos Adjuntos:</label>
+                    <div class="documents-row">
+                        <button type="button" class="doc-btn {% if item.documents.DOCUMENTO.exists and item.documents.DOCUMENTO.valid %}doc-ok{% else %}doc-missing{% endif %}" onclick="openDocModal('Documento', 'DOCUMENTO', {% if item.documents.DOCUMENTO.exists and item.documents.DOCUMENTO.valid %}true{% else %}false{% endif %})">Documento</button>
+
+                        <button type="button" class="doc-btn {% if item.documents.RECIBO_SERVICIOS.exists and item.documents.RECIBO_SERVICIOS.valid %}doc-ok{% else %}doc-missing{% endif %}" onclick="openDocModal('Recibo de Servicios', 'RECIBO_SERVICIOS', {% if item.documents.RECIBO_SERVICIOS.exists and item.documents.RECIBO_SERVICIOS.valid %}true{% else %}false{% endif %})">Recibo Servicios</button>
+
+                        <button type="button" class="doc-btn {% if item.documents.FOTO.exists and item.documents.FOTO.valid %}doc-ok{% else %}doc-missing{% endif %}" onclick="openDocModal('Foto', 'FOTO', {% if item.documents.FOTO.exists and item.documents.FOTO.valid %}true{% else %}false{% endif %})">Foto</button>
+                    </div>
+                </div>
+
+                {% if item.is_complete %}
+                <form method="post" class="assignment-form" onsubmit="return handleSubmit(event, this)">
+                    {% csrf_token %}
+                    <input type="hidden" name="case_id" value="{{ item.case.id }}">
+                    <input type="hidden" name="action" value="assign">
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label class="input-label">Sala <span class="required">*</span></label>
+                            <select name="category" class="input-select category-select"
+                                data-case-id="{{ item.case.id }}" required>
+
+                                <option value="">Seleccione la sala</option>
+                                {% for category_code, category_label in categories %}
+                                <option value="{{ category_code }}" {% if item.case.category == category_code %}selected{% endif %}>
+                                    {{ category_label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-col">
+                            <label class="input-label">Trámite Jurídico <span class="required">*</span></label>
+                            <select name="case_type" class="input-select" required>
+                                <option value="">Seleccione el trámite jurídico</option>
+                                {% for type_code, type_label in item.type_choices.items %}
+                                <option value="{{ type_code }}" {% if item.case.case_type_specific == type_code %}selected{% endif %}>
+                                    {{ type_label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-col">
+                            <label class="input-label">Estudiante Asignado <span class="required">*</span></label>
+                            <select name="assigned_student" class="input-select" required>
+                                <option value="">Seleccionar</option>
+                                {% for student in students %}
+                                <option value="{{ student.id }}">{{ student.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn-action btn-assign" disabled>Asignar Caso</button>
+                    </div>
+                </form>
+                {% else %}
+                <form method="post" class="assignment-form" onsubmit="return handleSubmit(event, this)">
+                    {% csrf_token %}
+                    <input type="hidden" name="case_id" value="{{ item.case.id }}">
+                    <input type="hidden" name="action" value="review">
+
+                    <div class="form-row">
+                        <button type="submit" class="btn-action btn-review">Enviar a Revisión</button>
+                    </div>
+                </form>
+                {% endif %}
+            </div> {% endfor %}
+        </div> {% else %} <div class="empty-state">
+            <svg width="70" height="70" viewBox="0 0 70 70" fill="none" style="margin: 0 auto 12px; display: block;">
+                <circle cx="35" cy="35" r="32" fill="#5b5ce2" opacity="0.2" />
+                <circle cx="32" cy="32" r="14" fill="none" stroke="#5b5ce2" stroke-width="2.5" stroke-linecap="round" />
+                <line x1="43" y1="43" x2="52" y2="52" stroke="#5b5ce2" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            <h3>No hay casos para distribuir</h3>
+            <p>Todos los casos ya tienen un estudiante asignado.</p>
+            <a href="{% url 'secretary_dashboard' %}" class="btn btn-primary">Volver al Panel</a>
+        </div>
+        {% endif %} {% if cases %}
+        <div class="footer-actions">
+            <a href="{% url 'secretary_dashboard' %}" class="btn-back">← Volver al Dashboard</a>
+        </div>
+        {% endif %}
+    </main>
+</div>
+
+<!-- Modal de Éxito -->
+<div id="successModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-icon">✓</div>
+        <h2 class="modal-title">Éxito</h2>
+        <p id="modalMessage" class="modal-message"></p>
+        <button onclick="document.getElementById('successModal').style.display='none'"
+            class="modal-button">Cerrar</button>
+    </div>
+</div>
+
+<!-- Modal de Información de Documento -->
+<div id="docInfoModal" class="modal-overlay doc-modal-overlay">
+    <div class="doc-modal-container">
+        <div class="doc-modal-header">
+            <h2 id="docModalTitle" class="doc-modal-title">Documento</h2>
+            <button class="doc-modal-close-btn" onclick="closeDocModal()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="doc-modal-body">
+            <div id="docPreviewFrame" class="doc-preview-frame doc-preview-missing">
+                <i id="docPreviewIcon" class="fa-regular fa-file doc-preview-icon"></i>
+                <span id="docModalStatusText" class="doc-preview-text">Archivo no existente</span>
+            </div>
+            <div class="doc-modal-requirements">
+                <p class="doc-req-title">Requisitos del archivo</p>
+                <ul id="docModalReqList" class="doc-req-list"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+
+    document.querySelectorAll('.category-select').forEach(select => {
+        select.addEventListener('change', function () {
+            const form = this.closest('.assignment-form');
+            const typeSelect = form.querySelector('select[name="case_type"]');
+
+            // Obtener todas las categorías seleccionadas
+            const selectedCategories = Array.from(this.selectedOptions).map(opt => opt.value);
+
+            // Estado de carga visual
+            typeSelect.innerHTML = '<option value="">Cargando...</option>';
+            typeSelect.disabled = true;
+
+            if (selectedCategories.length === 0) {
+                typeSelect.innerHTML = '<option value="">Seleccione el trámite jurídico</option>';
+                typeSelect.disabled = false;
+                validateFormFields(form);
+                return;
+            }
+
+            // Sincronizar: guardar la primera sala como valor del select (para POST)
+            this.value = selectedCategories[0];
+
+            // Enviar categorías como parámetro
+            const categoriesParam = selectedCategories.join(',');
+            fetch(`/cases/ajax/load-case-types/?categories=${categoriesParam}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Error en la red');
+                    return response.json();
+                })
+                .then(data => {
+                    typeSelect.innerHTML = '<option value="">Seleccione el trámite jurídico</option>';
+                    data.forEach(type => {
+                        const opt = document.createElement('option');
+                        opt.value = type.id;
+                        opt.textContent = type.name;
+                        typeSelect.appendChild(opt);
+                    });
+                    typeSelect.disabled = false;
+                    validateFormFields(form);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    typeSelect.innerHTML = '<option value="">Error al cargar</option>';
+                    typeSelect.disabled = false;
+                });
+        });
+    });
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function (e) {
+            const searchValue = e.target.value.trim();
+            if (searchValue === '') {
+                document.querySelectorAll('.case-box').forEach(box => {
+                    box.style.display = '';
+                });
+                hideNoResultsMessage();
+                return;
+            }
+
+            if (!/^\d+$/.test(searchValue)) {
+                searchInput.value = searchValue.replace(/\D/g, '');
+                return;
+            }
+
+            const fivedDigitId = searchValue.padStart(5, '0');
+
+            // Buscar por API
+            fetch(`/cases/api/casos/buscar-sin-asignar/?id=${fivedDigitId}`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else if (response.status === 404) {
+                        return { found: false };
+                    }
+                    throw new Error('Error en la API');
+                })
+                .then(data => {
+                    if (data.found) {
+                        // Encontró el caso - mostrar solo ese caso usando case_number
+                        const targetCaseNumber = data.case.case_number.toLowerCase();
+                        document.querySelectorAll('.case-box').forEach(box => {
+                            const boxCaseNumber = box.getAttribute('data-case-number');
+                            if (boxCaseNumber === targetCaseNumber) {
+                                box.style.display = '';
+                            } else {
+                                box.style.display = 'none';
+                            }
+                        });
+                        hideNoResultsMessage();
+                    } else {
+                        // No encontró el caso
+                        document.querySelectorAll('.case-box').forEach(box => {
+                            box.style.display = 'none';
+                        });
+                        showNoResultsMessage('No se encuentra un caso con ese ID');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error en búsqueda:', error);
+                    showNoResultsMessage('Error al buscar el caso');
+                });
+        });
+    }
+
+    // Mostrar mensaje de no resultados
+    function showNoResultsMessage(message) {
+        let msg = document.getElementById('noResultsMessage');
+        if (!msg) {
+            msg = document.createElement('div');
+            msg.id = 'noResultsMessage';
+            msg.className = 'no-results-message';
+            const casesWrapper = document.querySelector('.cases-wrapper');
+            if (casesWrapper) {
+                casesWrapper.parentNode.insertBefore(msg, casesWrapper.nextSibling);
+            }
+        }
+        msg.innerHTML = `
+        <svg width="70" height="70" viewBox="0 0 70 70" fill="none" style="margin: 0 auto 12px; display: block;">
+            <!-- Círculo relleno con transparencia -->
+            <circle cx="35" cy="35" r="32" fill="#5b5ce2" opacity="0.2"/>
+            <!-- Lupa -->
+            <circle cx="32" cy="32" r="14" fill="none" stroke="#5b5ce2" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="43" y1="43" x2="52" y2="52" stroke="#5b5ce2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>${message || 'No se encuentra un caso con ese ID'}</h3>
+    `;
+        msg.style.display = 'block';
+    }
+
+    // Ocultar mensaje de no resultados
+    function hideNoResultsMessage() {
+        const msg = document.getElementById('noResultsMessage');
+        if (msg) {
+            msg.style.display = 'none';
+        }
+    }
+
+    // Validar campos del formulario y habilitar/deshabilitar botón
+    function validateFormFields(form) {
+        const categorySelect = form.querySelector('[name="category"]');
+        const typeSelect = form.querySelector('[name="case_type"]');
+        const studentSelect = form.querySelector('[name="assigned_student"]');
+        const submitBtn = form.querySelector('.btn-assign');
+
+        // Verificar si todos los campos tienen valor
+        const allFilled = categorySelect && categorySelect.value !== '' &&
+            typeSelect && typeSelect.value !== '' &&
+            studentSelect && studentSelect.value !== '';
+
+        if (allFilled) {
+            submitBtn.disabled = false;
+            submitBtn.style.backgroundColor = '#8bc34a';
+            submitBtn.style.cursor = 'pointer';
+            submitBtn.style.opacity = '1';
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.style.backgroundColor = '#d1d5db';
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.style.opacity = '0.6';
+        }
+    }
+
+    // Agregar validación a todos los selects del formulario
+    document.querySelectorAll('.assignment-form select').forEach(select => {
+        select.addEventListener('change', function () {
+            const form = this.closest('.assignment-form');
+            validateFormFields(form);
+        });
+    });
+
+    // Mostrar modal de éxito
+    function showSuccessModal(caseNumber, studentName, action) {
+        let message;
+        if (action === 'review') {
+            message = `El caso "<strong>${caseNumber}</strong>" fue enviado a revisión`;
+        } else {
+            message = `El caso "<strong>${caseNumber}</strong>" ha sido asignado "<strong>${studentName}</strong>" exitosamente`;
+        }
+
+        const modal = document.getElementById('successModal');
+        const modalMessage = document.getElementById('modalMessage');
+        modalMessage.innerHTML = message;
+        modal.style.display = 'flex';
+
+        // Auto-cerrar después de 5 segundos
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 5000);
+    }
+
+    // Enviar formulario
+    function handleSubmit(event, form) {
+        event.preventDefault();
+        const caseBox = form.closest('.case-box');
+        const action = new FormData(form).get('action');
+        const caseNumber = caseBox.getAttribute('data-case-number');
+        const studentSelect = form.querySelector('[name="assigned_student"]');
+        const studentName = studentSelect && studentSelect.selectedIndex > 0 ? studentSelect.options[studentSelect.selectedIndex].text : 'Estudiante';
+
+        fetch('', {
+            method: 'POST',
+            body: new FormData(form)
+        }).then(response => {
+            return response.json().then(data => {
+                if (response.ok) {
+                    // Mostrar modal de éxito
+                    showSuccessModal(caseNumber, studentName, action);
+
+                    // Animar y remover caso solo si fue exitoso
+                    caseBox.style.animation = 'fadeOut 0.3s ease-out';
+                    setTimeout(() => {
+                        caseBox.remove();
+                        if (document.querySelectorAll('.case-box').length === 0) {
+                            setTimeout(() => location.reload(), 5000);
+                        }
+                    }, 300);
+                } else {
+                    // Error: mostrar notificación pero mantener visible el caso
+                    showNotification(`Error: ${data.message || 'No se pudo procesar la acción'}`, 'error');
+                }
+            }).catch(() => {
+                showNotification('Error al procesar la solicitud', 'error');
+            });
+        }).catch(error => {
+            console.error('Error:', error);
+            showNotification('Error de conexión', 'error');
+        });
+
+        return false;
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-text">${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+        notification.style.animation = 'slideIn 0.3s ease-out';
+        document.body.appendChild(notification);
+
+        // Auto-remover después de 4 segundos
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    if (notification.parentElement) notification.remove();
+                }, 300);
+            }
+        }, 4000);
+    }
+
+    // Borde morado al enfocar, gris al perder foco
+    function attachSelectListeners() {
+        document.querySelectorAll('.input-select, .form-select').forEach(select => {
+            if (select.dataset.listenersAttached) return;
+            select.dataset.listenersAttached = 'true';
+
+            select.addEventListener('focus', function() {
+                this.classList.add('has-focus');
+            });
+
+            select.addEventListener('blur', function() {
+                this.classList.remove('has-focus');
+            });
+        });
+    }
+
+    // Ejecutar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attachSelectListeners);
+    } else {
+        attachSelectListeners();
+    }
+
+    // Re-ejecutar después de cambios dinámicos (ej: cuando se cargan tipos vía AJAX)
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length || mutation.type === 'childList') {
+                setTimeout(attachSelectListeners, 100);
+            }
+        });
+    });
+
+    observer.observe(document, { childList: true, subtree: true });
+
+    function toggleDropdown() {
+        document.getElementById('userDropdown').classList.toggle('open');
+    }
+
+    window.addEventListener('click', function (event) {
+        if (!event.target.closest('.user-trigger') && !event.target.closest('.dropdown-menu')) {
+            document.getElementById('userDropdown').classList.remove('open');
+        }
+    });
+
+    const DOC_REQUIREMENTS = {
+        'DOCUMENTO': [
+            { label: 'Formatos', value: 'PDF, JPG, PNG' },
+            { label: 'Tamaño máximo', value: '5 MB' },
+            { label: 'Contenido', value: 'Documento de identidad del beneficiario legible' },
+            { label: 'Resolución', value: 'Mínimo 300 DPI para escaneos' }
+        ],
+        'RECIBO_SERVICIOS': [
+            { label: 'Formatos', value: 'PDF, JPG, PNG' },
+            { label: 'Tamaño máximo', value: '5 MB' },
+            { label: 'Contenido', value: 'Datos del beneficiario y dirección claramente visibles' },
+            { label: 'Vigencia', value: 'No mayor a 3 meses' }
+        ],
+        'FOTO': [
+            { label: 'Formatos', value: 'JPG, PNG' },
+            { label: 'Tamaño máximo', value: '2 MB' },
+            { label: 'Contenido', value: 'Foto reciente del beneficiario con fondo claro' },
+            { label: 'Dimensiones', value: 'Mínimo 300 x 400 píxeles' }
+        ]
+    };
+
+    function openDocModal(label, docType, exists) {
+        const modal = document.getElementById('docInfoModal');
+        document.getElementById('docModalTitle').textContent = label;
+
+        const previewFrame = document.getElementById('docPreviewFrame');
+        const previewIcon = document.getElementById('docPreviewIcon');
+        const statusText = document.getElementById('docModalStatusText');
+
+        previewFrame.className = 'doc-preview-frame doc-preview-missing';
+        previewIcon.className = 'fa-regular fa-file doc-preview-icon';
+        statusText.textContent = 'Archivo no existente';
+
+        const requirements = DOC_REQUIREMENTS[docType] || [];
+        document.getElementById('docModalReqList').innerHTML = requirements.map(req =>
+            `<li><span class="req-label">${req.label}</span><span class="req-value">${req.value}</span></li>`
+        ).join('');
+
+        modal.style.display = 'flex';
+    }
+
+    function closeDocModal() {
+        document.getElementById('docInfoModal').style.display = 'none';
+    }
+
+    document.getElementById('docInfoModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDocModal();
+    });
+</script>
+{% endblock %}

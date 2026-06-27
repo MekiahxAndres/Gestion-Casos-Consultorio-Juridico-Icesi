@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Historial de Citas{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts/beneficiary_appointments.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ beneficiary_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ beneficiary_data.full_name }}</strong>
+                    <span>{{ beneficiary_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow">⌄</div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content">
+        <h1 class="page-title">Historial de Citas</h1>
+        <p class="page-subtitle">Registro completo de todas tus citas</p>
+
+        <section class="appointments-section">
+            <h2>Próximas Citas</h2>
+
+            {% for appointment in upcoming_appointments %}
+                <article class="appointment-card upcoming">
+                    <div>
+                        <h3>{{ appointment.title }}</h3>
+                        <p><strong>Fecha:</strong> {{ appointment.date }}</p>
+                        <p><strong>Con:</strong> {{ appointment.with_person }}</p>
+                    </div>
+                    <span class="badge badge-primary">{{ appointment.status }}</span>
+                </article>
+            {% endfor %}
+        </section>
+
+        <section class="appointments-section">
+            <h2>Citas Anteriores</h2>
+
+            {% for appointment in past_appointments %}
+                <article class="appointment-card {{ appointment.status_type }}">
+                    <div class="appointment-top">
+                        <h3>{{ appointment.title }}</h3>
+                        {% if appointment.status_type == 'success' %}
+                            <span class="badge badge-success">{{ appointment.status }}</span>
+                        {% else %}
+                            <span class="badge badge-danger">{{ appointment.status }}</span>
+                        {% endif %}
+                    </div>
+
+                    <p><strong>Fecha:</strong> {{ appointment.date }}</p>
+                    <p><strong>Con:</strong> {{ appointment.with_person }}</p>
+
+                    <div class="notes-box">
+                        <strong>Notas:</strong> {{ appointment.notes }}
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+
+        <div class="bottom-back">
+            <a href="{% url 'beneficiary_dashboard' %}" class="secondary-button">
+                ⌂ Volver al Dashboard
+            </a>
+        </div>
+    </main>
+</div>
+{% endblock %}

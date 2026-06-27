@@ -1,0 +1,58 @@
+{% if items %}
+    <div class="table-wrapper">
+        <table class="appointments-table">
+            <thead>
+                <tr>
+                    <th>Cita</th>
+                    <th>Caso</th>
+                    <th>Beneficiario</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.appointment.title }}</strong>
+                            <span>{{ item.overdue_label }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ item.appointment.case.case_number }}</strong>
+                            <span>{{ item.appointment.case.get_status_display }}</span>
+                        </td>
+                        <td>{{ item.appointment.case.beneficiary.full_name }}</td>
+                        <td>
+                            <strong>{{ item.appointment.scheduled_for|date:"d/m/Y" }}</strong>
+                            <span>{{ item.appointment.scheduled_for|date:"h:i A" }}</span>
+                        </td>
+                        <td>
+                            {% if item.classification_key == "no_show" %}
+                                <span class="status-chip danger">No asistió</span>
+                            {% else %}
+                                <span class="status-chip warning">Pendiente vencida</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="row-actions">
+                                <a href="{% url 'case_appointment_detail' item.appointment.id %}" class="icon-button" aria-label="Abrir detalle de la cita">
+                                    <i class="fa-regular fa-calendar-check"></i>
+                                </a>
+                                <a href="{% url 'case_detail' item.appointment.case.id %}" class="icon-button" aria-label="Abrir caso asociado">
+                                    <i class="fa-solid fa-folder-open"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="empty-state">
+        <i class="fa-regular fa-calendar-check"></i>
+        <h3>{{ empty_title }}</h3>
+        <p>{{ empty_text }}</p>
+    </div>
+{% endif %}

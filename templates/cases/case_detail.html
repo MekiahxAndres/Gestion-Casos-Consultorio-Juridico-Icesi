@@ -1,0 +1,720 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Detalle del Caso{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cases/case_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <a href="{% url 'dashboard_redirect' %}" class="logo-link" style="display: inline-block; cursor: pointer;">
+                <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+            </a>
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ user_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ user_data.full_name }}</strong>
+                    <span>{{ user_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow">⌄</div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+
+    <main class="page-content case-detail-page">
+        <div class="case-detail-header">
+            <div>
+                <h1 class="page-title">Detalle del Caso {{ case.case_number }}</h1>
+                <p class="page-subtitle">Consulta toda la información relevante del caso y sus acciones disponibles.</p>
+            </div>
+        </div>
+
+        <div class="case-detail-grid">
+            <section class="left-column">
+                <article class="card feature-card case-description-card">
+                    <div class="card-section">
+                        <h2 class="card-title">Descripción del Caso</h2>
+                        <p class="case-description-text">{{ case.description }}</p>
+                    </div>
+                </article>
+
+                <article class="card feature-card stages-card">
+                    <div class="card-section">
+                        <h2 class="card-title">Etapas del Caso</h2>
+
+                        <div class="stages-list">
+                            {% for stage in stages %}
+                                <div class="stage-row">
+                                    <div class="stage-marker {% if stage.active %}active{% elif stage.completed %}completed{% endif %}">
+                                        {% if stage.completed %}✓{% else %}{{ stage.number }}{% endif %}
+                                    </div>
+
+                                    <div class="stage-content">
+                                        <div class="stage-name">{{ stage.title }}</div>
+
+                                        {% if stage.active %}
+                                            <span class="stage-progress">En progreso</span>
+                                        {% elif stage.completed %}
+                                            <span class="stage-completed">Completada</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </article>
+
+                <article class="card feature-card beneficiary-info-card">
+                    <div class="card-section">
+                        <h2 class="card-title">Información del Beneficiario</h2>
+
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Nombre completo</span>
+                                <span class="info-value">{{ case.beneficiary.full_name }}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Cédula</span>
+                                <span class="info-value">{{ case.beneficiary.document_number }}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Teléfono</span>
+                                <span class="info-value">{{ case.phone|default:"No registrado" }}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="info-label">Email</span>
+                                <span class="info-value">{{ case.beneficiary.email|default:"No registrado" }}</span>
+                            </div>
+
+                            <div class="info-item info-item-full">
+                                <span class="info-label">Dirección</span>
+                                <span class="info-value">{{ case.address|default:"No registrada" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <div class="bottom-actions">
+                    <a href="{% url 'secretary_cases' %}" class="secondary-button">
+                        ⌂ Volver a Gestión de Casos
+                    </a>
+                </div>
+            </section>
+
+            <aside class="right-column">
+                <article class="card side-feature-card status-card">
+                    <div class="card-section">
+                        <h2 class="card-title">Estado del Proceso</h2>
+
+                        <div class="status-pill-main">
+                            {{ case.get_status_display }}
+                        </div>
+
+                        {% if can_change_stage %}
+                            <button type="button" class="primary-button" style="width: 100%; margin-top: 12px; padding: 10px 16px; background-color: #5b5ce2; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 0.2s;" onclick="mostrarModalEstados()" onmouseover="this.style.backgroundColor='#4a4bb5'" onmouseout="this.style.backgroundColor='#5b5ce2'">
+                                Cambiar Estado
+                            </button>
+                        {% else %}
+                            <p class="helper-text">Solo usuarios autorizados pueden modificar esta etapa.</p>
+                        {% endif %}
+                    </div>
+                </article>
+
+                <article class="card side-feature-card assignment-card">
+                    <div class="card-section">
+                        <h2 class="card-title">Asignación</h2>
+
+                        <div class="mini-info-block">
+                            <span class="mini-label">Estudiante</span>
+                            <span class="mini-value">
+                                {% if case.assigned_student %}
+                                    {{ case.assigned_student.full_name }}
+                                {% else %}
+                                    Sin asignar
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="mini-divider"></div>
+
+                        <div class="mini-info-block">
+                            <span class="mini-label">Docente Supervisor</span>
+                            <span class="mini-value">
+                                {% if case.advisor %}
+                                    {{ case.advisor.full_name }}
+                                {% else %}
+                                    No asignado
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="mini-divider"></div>
+
+                        <div class="mini-info-block">
+                            <span class="mini-label">Secretaría responsable</span>
+                            <span class="mini-value">
+                                {% if case.secretary %}
+                                    {{ case.secretary.full_name }}
+                                {% else %}
+                                    No registrada
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="card side-feature-card dates-card">
+                    <div class="card-section">
+                        <h2 class="card-title">Fechas</h2>
+
+                        <div class="timeline-meta-item">
+                            <span class="timeline-meta-label">Fecha de creación</span>
+                            <span class="timeline-meta-value">{{ case.created_at|date:"d/m/Y" }}</span>
+                        </div>
+
+                        <div class="timeline-meta-item">
+                            <span class="timeline-meta-label">Última actualización</span>
+                            <span class="timeline-meta-value">{{ case.updated_at|date:"d/m/Y" }}</span>
+                        </div>
+
+                        <div class="timeline-meta-item">
+                            <span class="timeline-meta-label">Próxima cita</span>
+                            <span class="timeline-meta-value highlighted">Pendiente de asignación</span>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="card side-feature-card history-card">
+                    <div class="card-section">
+                        <h2 class="card-title">Historial</h2>
+
+                        {% if history_items %}
+                            <div class="history-list">
+                                {% for item in history_items %}
+                                    <div class="history-item">
+                                        <div class="history-dot"></div>
+                                        <div class="history-text">
+                                            <strong>{{ item.created_at|date:"d/m/Y" }}</strong>
+                                            <span>{{ item.get_entry_type_display }}</span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="empty-text">No hay historial registrado todavía.</p>
+                        {% endif %}
+                    </div>
+                </article>
+
+                <article class="card side-feature-card activity-card">
+                    <div class="card-section">
+                        <h2 class="card-title">Actividad</h2>
+
+                        <div class="activity-row">
+                            <span>Entradas en bitácora</span>
+                            <strong>{{ bitacora_count }}</strong>
+                        </div>
+
+                        <div class="activity-row">
+                            <span>Documentos</span>
+                            <strong>{{ documents_count }}</strong>
+                        </div>
+                    </div>
+                </article>
+
+                <div class="side-actions">
+                    <a href="{% url 'case_bitacora' case.id %}" class="primary-button full-button">
+                        Ver Bitácora
+                    </a>
+
+                    {% if can_reassign %}
+                        <a href="{% url 'reassign_case' case.id %}" class="primary-button full-button">
+                            Reasignar Caso
+                        </a>
+                    {% endif %}
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <!-- Modal de Selección de Estado -->
+    <div id="statusModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; width: 90%; max-width: 500px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15); animation: slideIn 0.3s ease; max-height: calc(100vh - 60px); overflow-y: auto; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5b5ce2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                        <path d="M9 11l3 3 5-5"></path>
+                    </svg>
+                    <h3 style="margin: 0; font-size: 22px; font-weight: 700; color: #111827;">Cambiar estado</h3>
+                </div>
+                <button type="button" style="border: none; background: transparent; font-size: 22px; cursor: pointer; color: #9ca3af; transition: color 0.2s;" onmouseover="this.style.color='#4b5563'" onmouseout="this.style.color='#9ca3af'" onclick="cerrarModalEstados()">✖</button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 0; user-select: none; transition: opacity 0.2s;" onclick="cambiarEstado('SIN')" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; background: #5b5ce2; color: white; border-radius: 999px; font-size: 12px; font-weight: 700; margin-right: 8px;">1</span>
+                        <strong style="font-size: 16px; color: #1f2937; font-weight: 600;">Sin asignar</strong>
+                    </div>
+                </div>
+
+                <div style="border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 0; user-select: none; transition: opacity 0.2s;" onclick="cambiarEstado('ASI')" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; background: #5b5ce2; color: white; border-radius: 999px; font-size: 12px; font-weight: 700; margin-right: 8px;">2</span>
+                        <strong style="font-size: 16px; color: #1f2937; font-weight: 600;">Asignado</strong>
+                    </div>
+                </div>
+
+                <div style="border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 0; user-select: none; transition: opacity 0.2s;" onclick="cambiarEstado('AUT')" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; background: #0f766e; color: white; border-radius: 999px; font-size: 12px; font-weight: 700; margin-right: 8px;">A</span>
+                        <strong style="font-size: 16px; color: #1f2937; font-weight: 600;">Autoasignado</strong>
+                    </div>
+                </div>
+
+                <div style="border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 0; user-select: none; transition: opacity 0.2s;" onclick="cambiarEstado('PRO')" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; background: #5b5ce2; color: white; border-radius: 999px; font-size: 12px; font-weight: 700; margin-right: 8px;">3</span>
+                        <strong style="font-size: 16px; color: #1f2937; font-weight: 600;">En proceso</strong>
+                    </div>
+                </div>
+
+                <div style="border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 0; user-select: none; transition: opacity 0.2s;" onclick="cambiarEstado('ESP')" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; background: #5b5ce2; color: white; border-radius: 999px; font-size: 12px; font-weight: 700; margin-right: 8px;">4</span>
+                        <strong style="font-size: 16px; color: #1f2937; font-weight: 600;">Esperar por beneficiario</strong>
+                    </div>
+                </div>
+
+                <div style="border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 0; user-select: none; transition: opacity 0.2s;" onclick="cambiarEstado('REV')" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; background: #5b5ce2; color: white; border-radius: 999px; font-size: 12px; font-weight: 700; margin-right: 8px;">5</span>
+                        <strong style="font-size: 16px; color: #1f2937; font-weight: 600;">En revisión</strong>
+                    </div>
+                </div>
+
+                <div style="border-bottom: 1px solid #f3f4f6; padding-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 0; user-select: none; transition: opacity 0.2s;" onclick="cambiarEstado('CER')" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; background: #5b5ce2; color: white; border-radius: 999px; font-size: 12px; font-weight: 700; margin-right: 8px;">6</span>
+                        <strong style="font-size: 16px; color: #1f2937; font-weight: 600;">Cerrado</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button type="button" style="padding: 10px 20px; background: #5b5ce2; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.backgroundColor='#4a4bb5'" onmouseout="this.style.backgroundColor='#5b5ce2'" onclick="cerrarModalEstados()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Éxito -->
+    <div id="successModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 4000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 12px; padding: 40px; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); max-width: 500px; width: 90%;">
+            <div style="width: 80px; height: 80px; background: #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 40px;">
+                ✓
+            </div>
+            <h2 id="successTitle" style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 12px 0;">Éxito</h2>
+            <p id="successMessage" style="font-size: 16px; color: #6b7280; margin: 0 0 32px 0; line-height: 1.5;"></p>
+            <button onclick="cerrarModalExito()" style="padding: 12px 32px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#16a34a'" onmouseout="this.style.background='#22c55e'">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+    <style>
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
+
+    <!-- Modal de Selección de Tipo de Cierre -->
+    <div class="modal-overlay" id="closureTypeModal">
+        <div class="modal-box" style="max-width: 520px; animation: slideIn 0.3s ease; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5b5ce2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <h3 id="closureModalTitle" style="margin: 0; font-size: 20px; font-weight: 700; color: #111827;">Tipo de cierre</h3>
+                </div>
+                <button type="button" style="border: none; background: transparent; font-size: 22px; cursor: pointer; color: #9ca3af;" onclick="closeClosureTypeModal()">✖</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label for="closureProcessType" style="display: block; font-weight: 700; color: #111827; margin-bottom: 8px;">Tipo de asunto</label>
+                    <select id="closureProcessType" style="width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 12px;">
+                        <option value="TUT">Tutela</option>
+                        <option value="PRO">Proceso judicial</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="closureReason" style="display: block; font-weight: 700; color: #111827; margin-bottom: 8px;">Motivo de cierre</label>
+                    <select id="closureReason" style="width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 12px;">
+                        <option value="">Seleccione el motivo</option>
+                        <option value="GAN">Caso finalizado jurídicamente (ganado)</option>
+                        <option value="PER">Caso finalizado jurídicamente (perdido)</option>
+                        <option value="DES_TAC">Desistimiento tácito del usuario</option>
+                        <option value="DES_EXP">Desistimiento expreso del usuario</option>
+                        <option value="INF_TER">Infringió los términos del consultorio jurídico</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="closureDescriptionText" style="display: block; font-weight: 700; color: #111827; margin-bottom: 8px;">
+                        Descripción del cierre <span style="color: #e63946; font-size: 12px;">(opcional)</span>
+                    </label>
+                    <textarea id="closureDescriptionText" rows="3" placeholder="Describe detalladamente el motivo del cierre..." style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-family: inherit; font-size: 14px; resize: vertical; outline: none; transition: border-color 0.2s; box-sizing: border-box;" onfocus="this.style.borderColor='#5b5ce2'" onblur="this.style.borderColor='#d1d5db'"></textarea>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button type="button" style="padding: 10px 20px; background: #5b5ce2; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; margin-right: 8px;" onmouseover="this.style.backgroundColor='#4a4bb5'" onmouseout="this.style.backgroundColor='#5b5ce2'" onclick="submitCaseClosure()">Cerrar caso</button>
+                <button type="button" style="padding: 10px 20px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;" onclick="closeClosureTypeModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Mostrar modal de selección de estados
+function mostrarModalEstados() {
+    var modal = document.getElementById('statusModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+// Cerrar modal de selección de estados
+function cerrarModalEstados() {
+    var modal = document.getElementById('statusModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Cerrar modal si se hace clic fuera
+document.addEventListener('DOMContentLoaded', function() {
+    var modal = document.getElementById('statusModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                cerrarModalEstados();
+            }
+        });
+    }
+});
+
+// Cambiar estado
+function cambiarEstado(status) {
+    cerrarModalEstados();
+    
+    if (status === 'CER') {
+        // Si es cerrado, abrir modal de selección de tipo
+        openClosureTypeModal();
+    } else {
+        // Para otros estados, cambiar directamente
+        hacerCambioEstado(status);
+    }
+}
+
+// Hacer el cambio de estado vía API
+function hacerCambioEstado(status) {
+    // Deshabilitar botón temporalmente
+    var btn = document.querySelector('button[onclick="mostrarModalEstados()"]');
+    if (btn) btn.disabled = true;
+    
+    fetch('/cases/api/casos/cambiar-estado/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: 'case_id={{ case.id }}&status=' + status
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            mostrarNotificacionExito(data.message || 'Estado del caso actualizado correctamente');
+            // No hacer reload aquí, que la función mostrarNotificacionExito lo haga
+        } else {
+            mostrarNotificacionError('Error: ' + (data.error || 'No se pudo cambiar el estado'));
+            if (btn) btn.disabled = false;
+        }
+    })
+    .catch(function(error) {
+        console.error('Error:', error);
+        mostrarNotificacionError('Error al cambiar el estado');
+        if (btn) btn.disabled = false;
+    });
+}
+
+// Abrir modal de cierre
+function openClosureTypeModal() {
+    var modal = document.getElementById('closureTypeModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+// Cerrar modal de cierre
+function closeClosureTypeModal() {
+    var modal = document.getElementById('closureTypeModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function outcomeFromClosureReason(reason) {
+    if (reason === 'GAN') return 'FAV';
+    if (reason === 'DES_TAC' || reason === 'DES_EXP') return 'DIS';
+    return 'NEG';
+}
+
+// Enviar cierre de caso
+function submitCaseClosure() {
+    const processType = document.getElementById('closureProcessType').value;
+    const reason = document.getElementById('closureReason').value;
+    const description = document.getElementById('closureDescriptionText') ? document.getElementById('closureDescriptionText').value.trim() : '';
+
+    if (!reason) {
+        mostrarNotificacionError('Seleccione el motivo de cierre');
+        return;
+    }
+
+    const closureType = outcomeFromClosureReason(reason);
+    closeClosureTypeModal();
+
+    fetch('/cases/api/casos/cerrar/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: 'case_id={{ case.id }}&closure_type=' + closureType + '&closure_process_type=' + processType + '&closure_reason=' + reason + '&closure_description=' + encodeURIComponent(description)
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            mostrarNotificacionExito('Caso cerrado exitosamente');
+            setTimeout(function() { window.location.reload(); }, 2000);
+        } else {
+            mostrarNotificacionError('Error: ' + (data.error || 'No se pudo cerrar el caso'));
+        }
+    })
+    .catch(function() {
+        mostrarNotificacionError('Error al cerrar el caso');
+    });
+}
+
+function submitCasureClosure(closureType) {
+    submitCaseClosure();
+}
+
+// Obtener token CSRF
+function getCSRFToken() {
+    var tokens = document.querySelectorAll('[name=csrfmiddlewaretoken]');
+    if (tokens.length) {
+        return tokens[0].value;
+    }
+    return '';
+}
+
+// Mostrar notificación de éxito
+function mostrarNotificacionExito(mensaje) {
+    var modal = document.getElementById('successModal');
+    var messageEl = document.getElementById('successMessage');
+    
+    if (modal && messageEl) {
+        messageEl.textContent = mensaje;
+        modal.style.display = 'block';
+        
+        setTimeout(function() {
+            cerrarModalExito();
+            location.reload();
+        }, 3000);
+    }
+}
+
+// Cerrar modal de éxito
+function cerrarModalExito() {
+    var modal = document.getElementById('successModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Mostrar notificación de error
+function mostrarNotificacionError(mensaje) {
+    var notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #fee2e2;
+        border-radius: 6px;
+        padding: 16px 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 3000;
+        animation: slideInRight 0.3s ease;
+        max-width: 400px;
+        border-left: 4px solid #ef4444;
+    `;
+    
+    notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 20px; height: 20px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <span style="color: white; font-weight: bold; font-size: 12px;">!</span>
+            </div>
+            <span style="color: #991b1b; font-size: 14px; font-weight: 500;">${mensaje}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(function() {
+        notification.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(function() {
+            notification.remove();
+        }, 300);
+    }, 4000);
+}
+
+// Estilos para modales
+document.addEventListener('DOMContentLoaded', function() {
+    var style = document.createElement('style');
+    style.textContent = `
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal-box {
+            background: white;
+            border-radius: 12px;
+            max-width: 90%;
+            width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .modal-title-section {
+            flex: 1;
+        }
+        
+        .modal-title-section h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+            transition: color 0.2s ease;
+        }
+        
+        .modal-close:hover {
+            color: #111827;
+        }
+        
+        .closure-option-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
+
+<style>
+.form-select {
+    font-family: Arial, sans-serif !important;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #5b5ce2 !important;
+    box-shadow: 0 0 0 3px rgba(91, 92, 226, 0.1) !important;
+}
+</style>
+
+{% endblock %}

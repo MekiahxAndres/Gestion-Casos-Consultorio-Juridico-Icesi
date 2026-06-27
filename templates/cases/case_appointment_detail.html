@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Detalle de Cita{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cases/missed_appointments_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <a href="{% url 'dashboard_redirect' %}" class="logo-link">
+                <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+            </a>
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ user_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ user_data.full_name }}</strong>
+                    <span>{{ user_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow"><i class="fa-solid fa-chevron-down"></i></div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content missed-appointments-page">
+        <div class="page-heading-row">
+            <div>
+                <h1 class="page-title">Detalle de cita</h1>
+                <p class="page-subtitle">Caso {{ appointment.case.case_number }} - {{ appointment.case.beneficiary.full_name }}</p>
+            </div>
+            <a href="{% url 'missed_appointments_dashboard' %}" class="secondary-button">
+                <i class="fa-solid fa-arrow-left"></i> Volver al tablero
+            </a>
+        </div>
+
+        <section class="detail-grid">
+            <article class="card">
+                <div class="card-section">
+                    <h2 class="section-title">{{ appointment.title }}</h2>
+                    <div class="detail-list">
+                        <div class="detail-item">
+                            <span>Fecha programada</span>
+                            <strong>{{ appointment.scheduled_for|date:"d/m/Y h:i A" }}</strong>
+                        </div>
+                        <div class="detail-item">
+                            <span>Estado registrado</span>
+                            <strong>{{ appointment.get_status_display }}</strong>
+                        </div>
+                        <div class="detail-item">
+                            <span>Clasificación</span>
+                            <strong>{{ classification }}</strong>
+                        </div>
+                        <div class="detail-item">
+                            <span>Creada por</span>
+                            <strong>{{ appointment.created_by.full_name|default:"No registrado" }}</strong>
+                        </div>
+                    </div>
+
+                    {% if appointment.notes %}
+                        <div class="notes-box">
+                            <span>Notas</span>
+                            <p>{{ appointment.notes }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </article>
+
+            <aside class="card">
+                <div class="card-section">
+                    <h2 class="section-title">Caso asociado</h2>
+                    <div class="detail-list">
+                        <div class="detail-item">
+                            <span>Número</span>
+                            <strong>{{ appointment.case.case_number }}</strong>
+                        </div>
+                        <div class="detail-item">
+                            <span>Beneficiario</span>
+                            <strong>{{ appointment.case.beneficiary.full_name }}</strong>
+                        </div>
+                        <div class="detail-item">
+                            <span>Estudiante</span>
+                            <strong>{{ appointment.case.assigned_student.full_name|default:"Sin asignar" }}</strong>
+                        </div>
+                        <div class="detail-item">
+                            <span>Asesor</span>
+                            <strong>{{ appointment.case.advisor.full_name|default:"No asignado" }}</strong>
+                        </div>
+                    </div>
+
+                    <a href="{% url 'case_detail' appointment.case.id %}" class="primary-button full-width">
+                        <i class="fa-solid fa-folder-open"></i> Abrir caso
+                    </a>
+                </div>
+            </aside>
+        </section>
+    </main>
+</div>
+{% endblock %}

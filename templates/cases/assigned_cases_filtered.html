@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Casos Asignados Filtrados{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cases-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+    }
+
+    .case-card {
+        background: white;
+        border: 2px solid #7c6fd9;
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .case-card:hover {
+        border-color: #6b5cc8;
+        box-shadow: 0 8px 24px rgba(124, 111, 217, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .case-card-number {
+        font-size: 24px;
+        font-weight: 700;
+        color: #7c6fd9;
+        margin-bottom: 12px;
+    }
+
+    .case-card-beneficiary {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 8px;
+    }
+
+    .case-card-info {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .case-card-info-label {
+        font-weight: 600;
+        min-width: 80px;
+    }
+
+    .case-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 12px;
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .case-badge.asignado {
+        background: #c8e6c9;
+        color: #2e7d32;
+    }
+
+    .case-badge.en-proceso {
+        background: #ffe0b2;
+        color: #e65100;
+    }
+
+    .case-badge.espera-beneficiario {
+        background: #f3e5f5;
+        color: #6a1b9a;
+    }
+
+    .case-badge.en-revision {
+        background: #fff9c4;
+        color: #f57f17;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 24px;
+        background: white;
+        border-radius: 12px;
+    }
+
+    .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .empty-state-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 8px;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #7c6fd9;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .back-link:hover {
+        color: #6b5cc8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ user_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ user_data.full_name }}</strong>
+                    <span>{{ user_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow">⌄</div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content">
+        <div style="margin-bottom: 32px;">
+            <h1 class="page-title">Casos de {{ category }}</h1>
+            
+            {% if case_type %}
+                <div style="font-size: 16px; color: #666; margin-top: 12px; font-weight: 600;">
+                    Trámite: {{ case_type }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <span style="font-size: 14px; color: #999;">{{ cases_count }} caso{{ cases_count|pluralize }}</span>
+            <a href="{% url 'assigned_cases_categories' %}" class="back-link">← Volver a salas</a>
+        </div>
+
+        {% if cases %}
+            <div class="cases-grid">
+                {% for case in cases %}
+                    <a href="{% url 'case_detail' case.id %}" class="case-card" style="text-decoration: none; color: inherit;">
+                        <div class="case-card-number">{{ case.case_number }}</div>
+
+                        <div class="case-card-beneficiary">{{ case.beneficiary.full_name }}</div>
+
+                        <div class="case-card-info">
+                            <span class="case-card-info-label">Estudiante:</span>
+                            <span>
+                                {% if case.assigned_student %}
+                                    {{ case.assigned_student.full_name }}
+                                {% else %}
+                                    Sin asignar
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="case-card-info">
+                            <span class="case-card-info-label">Sala:</span>
+                            <span>{{ case.get_category_display }}</span>
+                        </div>
+
+                        <div class="case-card-info">
+                            <span class="case-card-info-label">Descripción:</span>
+                        </div>
+                        <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                            {{ case.description|truncatewords:15 }}
+                        </div>
+
+                        <span class="case-badge {% if case.status == 'ASI' or case.status == 'AUT' %}asignado{% elif case.status == 'PRO' %}en-proceso{% elif case.status == 'ESP' %}espera-beneficiario{% elif case.status == 'REV' %}en-revision{% endif %}">
+                            {{ case.get_status_display }}
+                        </span>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <svg width="70" height="70" viewBox="0 0 70 70" fill="none" style="margin: 0 auto 12px; display: block;">
+                    <!-- Círculo relleno con transparencia -->
+                    <circle cx="35" cy="35" r="32" fill="#5b5ce2" opacity="0.2"/>
+                    <!-- Lupa -->
+                    <circle cx="32" cy="32" r="14" fill="none" stroke="#5b5ce2" stroke-width="2.5" stroke-linecap="round"/>
+                    <line x1="43" y1="43" x2="52" y2="52" stroke="#5b5ce2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="empty-state-title">No hay casos en esta sala</div>
+                <br>
+                <a href="{% url 'assigned_cases_categories' %}" class="back-link">← Volver a Salas</a>
+            </div>
+        {% endif %}
+    </main>
+</div>
+
+<script>
+function toggleDropdown() {
+    document.getElementById('userDropdown').classList.toggle('open');
+}
+
+window.addEventListener('click', function(event) {
+    if (!event.target.closest('.user-trigger') && !event.target.closest('.dropdown-menu')) {
+        document.getElementById('userDropdown').classList.remove('open');
+    }
+});
+</script>
+{% endblock %}

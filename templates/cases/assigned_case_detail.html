@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Detalle del Caso {{ case.case_number }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cases/case_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title-main">
+      Caso <span class="case-number-highlight">{{ case.case_number }}</span>
+    </h1>
+    <p class="page-subtitle-main">{{ case.title }}</p>
+  </div>
+  <a href="{% url 'dashboard_redirect' %}" class="back-link">← Volver al Dashboard</a>
+</div>
+
+<div class="detail-layout">
+
+  <div>
+
+    <div class="card">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Información del Caso
+      </h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <label>Número</label>
+          <span>{{ case.case_number }}</span>
+        </div>
+        <div class="info-item">
+          <label>Estado</label>
+          <span class="status-pill status-{{ case.status }}">{{ case.get_status_display }}</span>
+        </div>
+        <div class="info-item">
+          <label>Sala</label>
+          <span>{{ case.get_category_display|default:"Sin sala" }}</span>
+        </div>
+        <div class="info-item">
+          <label>Trámite jurídico</label>
+          <span>{{ case.case_type_specific|default:"—" }}</span>
+        </div>
+        <div class="info-item">
+          <label>Fecha de creación</label>
+          <span>{{ case.created_at|date:"d/m/Y" }}</span>
+        </div>
+        <div class="info-item">
+          <label>Última actualización</label>
+          <span>{{ case.updated_at|date:"d/m/Y" }}</span>
+        </div>
+        <div class="info-item" style="grid-column: 1 / -1;">
+          <label>Descripción</label>
+          <span class="description-text">{{ case.description }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Etapa Actual
+      </h2>
+      <p class="stage-title">
+        {{ case.get_current_stage_display }}
+      </p>
+      <div class="stage-bar">
+        {% for i in "012345" %}
+          <div class="stage-step {% if case.current_stage > forloop.counter0 %}done{% elif case.current_stage == forloop.counter0 %}active{% endif %}"></div>
+        {% endfor %}
+      </div>
+      <div class="stage-labels">
+        <span class="stage-label">Sin asignar</span>
+        <span class="stage-label">Presentación</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        Bitácora
+        <span class="badge-count">{{ binnacles.count }} entradas</span>
+      </h2>
+
+      {% if binnacles %}
+        <ul class="binnacle-list">
+          {% for entry in binnacles %}
+          <li class="binnacle-item">
+            <div class="binnacle-dot"></div>
+            <div class="binnacle-content">
+              <div class="binnacle-text">
+                {{ entry.content }}
+                <span class="binnacle-type-badge">{{ entry.get_entry_type_display }}</span>
+              </div>
+              <div class="binnacle-meta">
+                {{ entry.author.full_name }} · {{ entry.created_at|date:"d/m/Y H:i" }}
+              </div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-state-text">
+          No hay entradas en la bitácora todavía.
+        </p>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <div>
+
+    <div class="card">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        Beneficiario
+      </h2>
+      <div class="sidebar-info-row">
+        <span class="label">Nombre</span>
+        <span class="value">{{ case.beneficiary.full_name }}</span>
+      </div>
+      {% if case.phone %}
+      <div class="sidebar-info-row">
+        <span class="label">Teléfono</span>
+        <span class="value">{{ case.phone }}</span>
+      </div>
+      {% endif %}
+      {% if case.address %}
+      <div class="sidebar-info-row">
+        <span class="label">Dirección</span>
+        <span class="value">{{ case.address }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Asignación
+      </h2>
+      <div class="sidebar-info-row">
+        <span class="label">Estudiante</span>
+        <span class="value">{{ case.assigned_student.full_name|default:"—" }}</span>
+      </div>
+      <div class="sidebar-info-row">
+        <span class="label">Asesor</span>
+        <span class="value">{{ case.advisor.full_name|default:"—" }}</span>
+      </div>
+      {% if assignment %}
+      <div class="sidebar-info-row">
+        <span class="label">Fecha asignación</span>
+        <span class="value">{{ assignment.assigned_at|date:"d/m/Y" }}</span>
+      </div>
+      <div class="sidebar-info-row">
+        <span class="label">Trámite</span>
+        <span class="value">{{ assignment.get_assignment_type_display }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if case_documents %}
+    <div class="card">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+        Archivos adjuntos
+        <span class="badge-count">{{ case_documents.count }}</span>
+      </h2>
+      {% for document in case_documents %}
+      <div class="sidebar-info-row">
+        <span class="label">{{ document.get_document_type_display }}</span>
+        <span class="value document-name">{{ document.original_name|default:document.file.name|truncatechars:24 }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

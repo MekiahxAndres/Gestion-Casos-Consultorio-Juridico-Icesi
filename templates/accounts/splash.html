@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts/splash.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="splash-page" data-next-url="{% url 'role_selection' %}">
+    <div class="splash-content">
+        <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico" class="splash-logo">
+        <h1>Sistema de Gestión de Casos</h1>
+        <p>Toca para continuar</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const splash = document.querySelector(".splash-page");
+        if (splash) {
+            splash.addEventListener("click", function () {
+                const nextUrl = splash.dataset.nextUrl;
+                if (nextUrl) {
+                    window.location.href = nextUrl;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Casos Asignados por Sala{% endblock %}
+
+{% block extra_css %}
+<style>
+    .categories-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+
+    .category-box {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 0;
+        overflow: hidden;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .category-box:hover {
+        border-color: #7c6fd9;
+        box-shadow: 0 8px 24px rgba(124, 111, 217, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .category-box-header {
+        background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
+        padding: 20px;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .category-box-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1a1a1a;
+    }
+
+    .category-box-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        background: #5b5ce2;
+        color: white;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 14px;
+    }
+
+    .category-box-types {
+        padding: 0;
+    }
+
+    .type-row {
+        padding: 12px 20px;
+        border-top: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background 0.2s;
+    }
+
+    .type-row:first-child {
+        border-top: none;
+    }
+
+    .type-row:hover {
+        background: #f9f9f9;
+    }
+
+    .type-row-name {
+        font-size: 13px;
+        color: #333;
+        flex: 1;
+    }
+
+    .type-row-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        background: #f0f0f0;
+        color: #333;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .type-row-link {
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .type-row-link:hover .type-row-name {
+        color: #7c6fd9;
+        font-weight: 600;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 24px;
+        background: white;
+        border-radius: 12px;
+    }
+
+    .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .empty-state-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 8px;
+    }
+
+    .empty-state-text {
+        font-size: 14px;
+        color: #999;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ user_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ user_data.full_name }}</strong>
+                    <span>{{ user_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow">⌄</div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content">
+        <h1 class="page-title">Casos Asignados por Sala</h1>
+        <p class="page-subtitle">Total de casos: {{ total_assigned }}</p>
+
+        {% if categories %}
+            <div class="categories-container">
+                {% for category in categories %}
+                    <div class="category-box">
+                        <div class="category-box-header">
+                            <span class="category-box-title">{{ category.label }}</span>
+                            <span class="category-box-count">{{ category.count }}</span>
+                        </div>
+
+                        <div class="category-box-types">
+                            {% for type in category.types %}
+                                <a href="{% url 'assigned_cases_filtered' %}?category={{ category.key|urlencode }}&type={{ type.code|urlencode }}" class="type-row type-row-link">
+                                    <span class="type-row-name">• {{ type.label }}</span>
+                                    <span class="type-row-count">{{ type.count }}</span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-title">No hay casos asignados</div>
+                <div class="empty-state-text">No hay casos asignados a estudiantes en este momento</div>
+            </div>
+        {% endif %}
+    </main>
+</div>
+
+<script>
+function toggleDropdown() {
+    document.getElementById('userDropdown').classList.toggle('open');
+}
+
+window.addEventListener('click', function(event) {
+    if (!event.target.closest('.user-trigger') && !event.target.closest('.dropdown-menu')) {
+        document.getElementById('userDropdown').classList.remove('open');
+    }
+});
+</script>
+{% endblock %}

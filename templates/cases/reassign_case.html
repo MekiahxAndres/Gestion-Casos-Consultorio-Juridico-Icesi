@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Reasignación de Caso{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cases/reassign_case.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <a href="{% url 'dashboard_redirect' %}" class="logo-link" style="display: inline-block; cursor: pointer;">
+                <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+            </a>
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ user_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ user_data.full_name }}</strong>
+                    <span>{{ user_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow"><i class="fa-solid fa-chevron-down"></i></div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+
+    <main class="page-content reassign-page">
+        <h1 class="page-title">Reasignación de Caso</h1>
+        <p class="page-subtitle">
+            Reasigna el caso {{ case.case_number }} a un nuevo estudiante
+        </p>
+
+        <section class="card case-summary-card">
+            <div class="card-section">
+                <h2 class="card-title">Información del Caso</h2>
+
+                <div class="summary-grid">
+                    <div class="summary-box">
+                        <span class="summary-label">Número de Caso</span>
+                        <strong>{{ case.case_number }}</strong>
+                    </div>
+
+                    <div class="summary-box">
+                        <span class="summary-label">Sala</span>
+                        <strong>{{ case.get_category_display|default:"Sin sala" }}</strong>
+                    </div>
+
+                    <div class="summary-box">
+                        <span class="summary-label">Trámite jurídico</span>
+                        <strong>{{ case.get_specific_type_display|default:"Sin trámite" }}</strong>
+                    </div>
+
+                    <div class="summary-box summary-box-full">
+                        <span class="summary-label">Beneficiario</span>
+                        <strong>{{ case.beneficiary.full_name }}</strong>
+                    </div>
+
+                    <div class="summary-box summary-box-full">
+                        <span class="summary-label">Descripción</span>
+                        <p>{{ case.description }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card reassign-form-card">
+            <div class="card-section">
+                <h2 class="card-title">Reasignación de Estudiante</h2>
+
+                <form method="post" class="reassign-form">
+                    {% csrf_token %}
+
+                    <div class="form-grid">
+                        <div class="summary-box">
+                            <span class="summary-label">Estudiante Actual</span>
+                            <strong>
+                                {% if case.assigned_student %}
+                                    {{ case.assigned_student.full_name }}
+                                {% else %}
+                                    Sin asignar
+                                {% endif %}
+                            </strong>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="new_student">Nuevo Estudiante *</label>
+                            <select name="new_student" id="new_student" class="form-select" required>
+                                <option value="">Selecciona un estudiante</option>
+                                {% for student in students %}
+                                    <option
+                                        value="{{ student.id }}"
+                                    >
+                                        {{ student.full_name }} - {{ student.sala_case_count }} en esta sala / {{ student.active_case_count }} activos
+                                    </option>
+                                {% empty %}
+                                    <option value="" disabled>No hay estudiantes activos disponibles</option>
+                                {% endfor %}
+                            </select>
+                            <p class="field-hint">
+                                Se listan todos los estudiantes activos distintos al actual. El orden prioriza quienes tienen menos casos en esta sala y luego menor carga activa total.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="reason">Motivo de la reasignación</label>
+                        <textarea
+                            name="reason"
+                            id="reason"
+                            class="form-textarea"
+                            placeholder="Escribe el motivo de la reasignación del caso..."
+                        ></textarea>
+                    </div>
+
+                    <div class="reassign-actions">
+                        <a href="{% url 'case_detail' case.id %}" class="danger-button cancel-button">
+                            Cancelar
+                        </a>
+
+                        <button type="submit" class="primary-button submit-button">
+                            Reasignar Caso
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

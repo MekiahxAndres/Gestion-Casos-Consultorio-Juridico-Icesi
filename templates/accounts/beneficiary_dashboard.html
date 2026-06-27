@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard Beneficiario{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts/beneficiary_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <header class="topbar">
+        <div class="topbar-logo">
+            <a href="{% url 'dashboard_redirect' %}" class="logo-link" style="display: inline-block; cursor: pointer;">
+                <img src="{% static 'images/logo.png' %}" alt="Consultorio Jurídico">
+            </a>
+        </div>
+
+        <div class="user-menu">
+            <button class="user-trigger" type="button" onclick="toggleDropdown()">
+                <div class="avatar">{{ beneficiary_data.initials }}</div>
+                <div class="user-text">
+                    <strong>{{ beneficiary_data.full_name }}</strong>
+                    <span>{{ beneficiary_data.role_name }}</span>
+                </div>
+                <div class="dropdown-arrow"><i class="fa-solid fa-chevron-down"></i></div>
+            </button>
+
+            <div class="dropdown-menu" id="userDropdown">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content">
+        <h1 class="page-title">Bienvenido, María</h1>
+        <p class="page-subtitle">Aquí puedes consultar el estado de tu caso</p>
+
+        <div class="beneficiary-grid">
+            <section class="left-column">
+                <article class="card main-case-card">
+                    <div class="case-header">
+                        <h2>Mi Caso</h2>
+                        <span class="case-number">{{ beneficiary_data.case_id }}</span>
+                    </div>
+
+                    <div class="case-body">
+                        <div class="case-block">
+                            <span class="label">Etapa del Proceso</span>
+                            <strong class="stage-highlight">{{ beneficiary_data.process_stage }}</strong>
+                        </div>
+
+                        <div class="case-block">
+                            <span class="label">Estudiante Asignado</span>
+                            <strong>{{ beneficiary_data.assigned_student_name }}</strong>
+                        </div>
+
+                        <div class="appointment-box appointment-success">
+                            <strong>Próxima Cita</strong>
+                            <span>{{ beneficiary_data.next_appointment }}</span>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <aside class="right-column">
+                <article class="card side-card">
+                    <h3>Estudiante Asignado</h3>
+                    <strong class="assigned-name">{{ beneficiary_data.assigned_student_name }}</strong>
+                    <p>{{ beneficiary_data.assigned_student_program }}</p>
+                    <button class="primary-button full-button" type="button">Contactar</button>
+                </article>
+
+                <article class="card side-card">
+                    <h3>Historial de Citas</h3>
+
+                    <div class="mini-detail">
+                        <span>Fecha de inicio</span>
+                        <strong>{{ beneficiary_data.start_date }}</strong>
+                    </div>
+
+                    <div class="mini-detail">
+                        <span>Última cita</span>
+                        <div class="mini-status danger">
+                            <strong>{{ beneficiary_data.last_appointment_status }}</strong>
+                            <small>{{ beneficiary_data.last_appointment_date }}</small>
+                        </div>
+                    </div>
+
+                    <div class="mini-detail">
+                        <span>Próxima cita</span>
+                        <div class="mini-status primary">
+                            <strong>{{ beneficiary_data.next_appointment }}</strong>
+                            <small>{{ beneficiary_data.next_appointment_title }}</small>
+                        </div>
+                    </div>
+
+                    <a href="{% url 'beneficiary_appointments' %}" class="secondary-button full-button">
+                        Ver Historial Completo
+                    </a>
+                </article>
+            </aside>
+        </div>
+
+        <section class="assistant-banner">
+            <div>
+                <h3>¿Necesitas ayuda?</h3>
+                <p>Consulta con nuestro asistente virtual las 24 horas del día</p>
+            </div>
+
+            <a href="{{ beneficiary_data.assistant_url }}" target="_blank" class="assistant-button">
+                Preguntar
+            </a>
+        </section>
+    </main>
+</div>
+{% endblock %}
